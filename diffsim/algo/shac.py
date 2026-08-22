@@ -40,11 +40,16 @@ class ActorCritic(nn.Module):
 class ShacTrainer:
     def __init__(self, ac: ActorCritic, gamma: float = 0.995,
                  lam: float = 0.95, lr_actor: float = 3e-4,
-                 lr_critic: float = 1e-3, grad_clip: float = 1.0):
+                 lr_critic: float = 1e-3, grad_clip: float = 1.0,
+                 explore_sigma: float = 0.05):
         self.ac = ac
         self.gamma = gamma
         self.lam = lam
         self.grad_clip = grad_clip
+        # zeroth-order exploration: additive Gaussian noise on actions in
+        # TRAINING rollouts only -- also yields a free FD-gradient baseline
+        self.explore_sigma = explore_sigma
+        self.last_clip_hit = False
         self.opt_actor = torch.optim.Adam(ac.actor.parameters(), lr=lr_actor)
         self.opt_critic = torch.optim.Adam(ac.critic.parameters(), lr=lr_critic)
 
@@ -71,6 +76,7 @@ class ShacTrainer:
         loss.backward()
         gnorm = torch.nn.utils.clip_grad_norm_(self.ac.actor.parameters(),
                                                self.grad_clip)
+        self.last_clip_hit = bool(gnorm > self.grad_clip)
         self.opt_actor.step()
         return float(J.mean().detach()), float(gnorm)
 

@@ -78,6 +78,14 @@ Testbed ladder before humanoid claims: bouncing ball on wavy floor →
 passive dynamic walker (published bifurcation diagrams as ground truth) →
 humanoid.
 
+## VALIDITY NOTICE
+
+All quantitative tables below the training section were produced by
+commit `ae5d862`, whose contact model contained four defects since fixed
+(delta-function activation gate, suction floor, argmin foot switch,
+mis-indexed joint limits). They are retained as historical record only.
+Current-physics measurements live in the sections marked [v2 physics].
+
 ## Measured: end-to-end neural-network training (SHAC-lite)
 
 `scripts/train_balance.py` trains a 34→128→128→15 MLP policy (residual on
@@ -99,7 +107,42 @@ force sequences, crouched/tilted starts, or COM-recentering objectives.
 Throughput: ~50 s/iteration (E=64×H=32) on CPU fp64 — GPU/fp32/compile is
 the obvious next performance step.
 
-## Measured: the differentiable-sim gradient tradeoff
+## Measured [v2 physics]: gradients are EXACT through H=128 — the old
+"chaotic tradeoff" was an artifact
+
+Post-fix physics (softplus analytic contact ramp, two-point feet, correct
+Q-space limits, no suction). Three estimators agree:
+
+**1. Gradient-probe v2** (seeded, E=64 matched batch per leg, fd_eps
+plateau verified at 0.000 rel-diff across eps∈{1e-3..1e-6}, 3 seeds):
+
+| H | median ‖g_bptt‖ | median ‖g_fd‖ | cosine | rel err |
+|---:|---:|---:|---:|---:|
+| 8 | 2.4253 | 2.4253 | 1.00000 | 0.0000 |
+| 32 | 2.4206 | 2.4206 | 1.00000 | 0.0000 |
+| 64 | 2.4508 | 2.4508 | 1.00000 | 0.0000 |
+| 128 | 2.9993 | 2.9993 | 1.00000 | 0.0000 |
+
+**Every horizon, every seed: backprop-through-simulation equals finite
+differences to reported precision.**
+
+**2. Benettin pair-divergence** across a decade of k_ground:
+lambda = −5192…−5197 /s — invariant under k (0.03% spread) and negative.
+The exponent equals the contact normal-damping rate b/m_eff ≈ 5263/s.
+Standing is an asymptotically stable fixed point; there is no chaos.
+
+**3. fp32-vs-fp64 trajectory divergence**: fitted rate ≈ 0 /s (bounded,
+non-growing precision-level offset). No secular separation.
+
+**Conclusion**: the previously reported "Lyapunov-type signature"
+(H=64 cos 0.887, 52% error) was entirely an artifact of four contact/
+limit defects (delta-function gate, suction anti-damping, argmin foot
+switch, mis-indexed limits). On corrected physics, backprop through this
+simulator is exact to machine precision over half-second horizons. The
+genuine chaos question moves — with the whole ladder — to locomotion
+gaits, where unstable limit cycles make Gate 1 meaningful.
+
+## INVALIDATED [ae5d862 physics]: the old gradient table
 
 BPTT gradients of a stabilization cost w.r.t. 15 PD-target parameters,
 checked against central finite differences (`scripts/probe_gradients.py`,

@@ -136,7 +136,8 @@ def main(smoke=False):
         fall_count = 0
         for _ in range(cfg["H"]):
             R_w, _ = sim.art.kinematics(q)
-            a = ac.act(obs_of(R_w, q, w)).clamp(-0.5, 0.5)
+            a = (ac.act(obs_of(R_w, q, w))
+                 + trainer.explore_sigma * torch.randn_like(a)).clamp(-0.5, 0.5)
             tau = sim.pd_torques(q, w, a.clone(), kp=CFG["kp"], kd=CFG["kd"])
             r = sim.step(q, w, tau_ext=tau, train_mode=True)
             q, w = r.q, r.qd
@@ -180,7 +181,7 @@ def main(smoke=False):
                     vl = trainer.value_step(o_flat[s:s + 2048],
                                             g_flat[s:s + 2048])
 
-        msg = f"iter {it:3d}  J={j_mean:9.3f} |g|={gnorm:9.4f} vloss={vl:9.4f} " \
+        msg = f"iter {it:3d}  J={j_mean:9.3f} |g|={gnorm:9.4f} clip={int(trainer.last_clip_hit)} vloss={vl:9.4f} " \
               f"fall={fall_rate:.2f} cur={cur:.2f} ({time.time()-t0:.1f}s)"
         if (it + 1) % 10 == 0 or it == cfg["iters"] - 1 or smoke:
             ev_ret, ev_alive = evaluate(ac, sim, model, scale=cur)

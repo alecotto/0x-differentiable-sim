@@ -21,7 +21,7 @@ from typing import List, NamedTuple, Optional
 import torch
 
 from .articulation import Articulation, Model
-from .collision import SPHERE, Geoms, eval_ground, eval_pairs, smooth_ramp, softplus_pen
+from .collision import SPHERE, Geoms, eval_ground, eval_pairs, softplus_pen
 
 
 
@@ -34,13 +34,15 @@ class ContactConfig:
     damping: float = 400.0           # normal damping [N s/m]
     mu: float = 0.9                  # friction coefficient (regularized viscous)
     margin: float = 0.0              # contact activation distance
-    beta: float = 200.0              # (legacy) softplus sharpness
-    smooth: float = 1e-4             # contact ramp smoothing width [m]
+    beta_soft: float = 1.0e4         # contact pen ramp: eps = 1/beta [m]
+    smooth: float = 1e-4             # activation-gate width [m]
     v_reg: float = 0.05              # tangential velocity regularization [m/s]
-    limit_k: float = 200.0           # joint-limit spring stiffness
-    limit_beta: float = 20.0         # joint-limit softness
-                                     # max slope = k*beta*0.5 must stay
-                                     # below I_min * (dt-stable omega)^2
+    limit_k: float = 2000.0          # asymptotic joint-limit stiffness [Nm/rad]
+                                     # (slope == limit_k; beta only sets width)
+    limit_beta: float = 50.0         # transition width ~ 1/beta [rad]
+                                     # rest-leak ~ limit_k/beta*exp(-d*beta)
+                                     # chosen so leak <= ~3 Nm at 0.05 rad
+                                     # inside range, wall >= 600 Nm at 0.3
 
 
 @dataclasses.dataclass
@@ -115,6 +117,10 @@ class DiffSim:
         # telemetry for non-smooth ops inside differentiated rollouts
         self.clamp_stats = {"vn_cap_hits": 0.0, "vel_clamp_hits": 0.0}
 
+    def reset_stats(self):
+        for k in self.clamp_stats:
+            self.clamp_stats[k] = 0.0
+
     # ------------------------------------------------------------------ #
     # Jacobian helpers
     # ------------------------------------------------------------------ #
@@ -186,12 +192,11 @@ class DiffSim:
             res = eval_ground(self.geoms, centers, Rg)
             dist = res["dist"][:, gi].reshape(E, -1)           # [E,2g]
             p_body = res["p_body"][:, gi].reshape(E, -1, 3)    # [E,2g,3]
-            # clamp matters: unclamped smooth_ramp sits at -eps/2 for
-            # SEPARATED geoms -> constant suction -> act<0 -> friction
-            # becomes anti-damping on every non-touching contact.
-            pen = smooth_ramp(cc.margin - dist, cc.smooth).clamp(min=0.0)
-            # activation gate width MATCHES the ramp width (cc.smooth);
-            # a 1e-9 guard here made the gate a ~10nm delta function.
+            # softplus ramp: C^inf everywhere, EXACTLY zero-force tail
+            # decaying exponentially (no suction floor, no clamp kink).
+            # Phantom pen at touch = eps*ln2 -- a constant offset absorbed
+            # into the rest pose, not a dynamic artifact.
+            pen = softplus_pen(cc.margin - dist, cc.beta_soft)
             act = pen / (pen + cc.smooth)
 
             gw = self.ground_w.reshape(-1)                     # [2g] {1,0}
@@ -206,7 +211,7 @@ class DiffSim:
                 cap_hits = float(((-vn > 2.0) & (act > 1e-6)).sum())
                 self.clamp_stats["vn_cap_hits"] += cap_hits
                 vn_c = torch.clamp(-vn, max=2.0)               # cap approach speed
-                fn = fn + cc.damping * act * smooth_ramp(vn_c, 1e-3)
+                fn = fn + gw * cc.damping * act * softplus_pen(vn_c, 1e3)
                 vt = vb - vn.unsqueeze(-1) * n_hat
                 vtn = torch.linalg.vector_norm(vt, dim=-1)
                 ft = -(cc.mu * fn).unsqueeze(-1) * vt / (vtn.unsqueeze(-1) + cc.v_reg)
@@ -228,7 +233,7 @@ class DiffSim:
             res = eval_pairs(self.geoms, centers, Rg, self.pair_i, self.pair_j)
             dist = res["dist"]
             p1, p2 = res["p1"], res["p2"]
-            pen = smooth_ramp(cc.margin - dist, cc.smooth).clamp(min=0.0)
+            pen = softplus_pen(cc.margin - dist, cc.beta_soft)
             act = pen / (pen + cc.smooth)
 
             diff = p1 - p2
@@ -248,7 +253,7 @@ class DiffSim:
                 vrel = vall[:, :P] - vall[:, P:]               # [E,P,3]
                 vn = (vrel * n_hat).sum(-1)
                 vn_c = torch.clamp(-vn, max=2.0)                # cap approach speed
-                fn = fn + cc.damping * act * smooth_ramp(vn_c, 1e-3)
+                fn = fn + cc.damping * act * softplus_pen(vn_c, 1e3)
                 vt = vrel - vn.unsqueeze(-1) * n_hat
                 vtn = torch.linalg.vector_norm(vt, dim=-1)
                 ft = -(cc.mu * fn / (vtn + cc.v_reg)).unsqueeze(-1) * vt

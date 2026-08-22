@@ -480,12 +480,6 @@ class Articulation:
         (_, Mdot) = jvp(lambda q_: self.mass_matrix(q_), (q,),
                         (self._qspace_rate(q, qd),))
 
-        def ke_fn(q_):
-            M_ = self.mass_matrix(q_)
-            return 0.5 * torch.matmul(
-                torch.matmul(qd.unsqueeze(1), M_), qd.unsqueeze(2)
-            ).reshape(E)
-
         # h = (dM/dt) qd - A^T d(KE)/dq, where A = d(q_dot)/d(qd) is the
         # configuration-rate map (identity for hinge/slide dofs, the
         # quaternion kinematic map for the free joint).  The pullback is
