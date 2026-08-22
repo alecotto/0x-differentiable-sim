@@ -147,17 +147,25 @@ def make_soma_humanoid(scale: float = 1.0) -> tuple:
             body_dof_start.append(-1)
     nq, nv = qi, vi
 
-    # limits & damping on actuated dofs -----------------------------------
+    # limits & damping on actuated dofs -- assigned BY JOINT NAME so every
+    # joint gets a physically meaningful range (blanket knee-style limits
+    # previously leaked onto ankles and right hips).
     actuated = [d for d, bi in enumerate(dof_body) if int(B[bi][2]) == J_HINGE]
+    RANGES = {
+        "torso": (-1.0, 1.0),
+        "upper_arm": (-2.6, 2.6), "lower_arm": (-2.6, 0.05),
+        "hip_pitch": (-2.0, 2.0), "hip_roll": (-0.5, 0.5),
+        "shin": (-math.pi / 2 * 0.95, 0.05),          # knees: no hyperextension
+        "ankle_pitch": (-0.8, 0.8), "ankle_roll": (-0.5, 0.5),
+    }
     lo = torch.full((len(actuated),), -2.6, dtype=torch.float64)
     hi = torch.full((len(actuated),), 2.6, dtype=torch.float64)
-    # knees cannot hyperextend: leg hinge dofs start after torso+arms
-    first_leg_dof = actuated[1 + 4]          # skip torso (1) + 2x2 arm dofs
-    knee_idx = [k for k, d in enumerate(actuated)
-                if d >= first_leg_dof + 2]   # hip_pitch, hip_roll, then knee
-    for k in knee_idx:
-        lo[k] = -math.pi / 2 * 0.95
-        hi[k] = 0.05
+    for k, d in enumerate(actuated):
+        nm = B[dof_body[d]][0]
+        for key, rng in RANGES.items():
+            if key in nm:
+                lo[k], hi[k] = rng
+                break
     damping = torch.full((nv,), 0.6, dtype=torch.float64)
     damping[:6] = 0.05  # base dofs: light damping only
 

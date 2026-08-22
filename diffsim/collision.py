@@ -187,20 +187,26 @@ def eval_pairs(g: Geoms, centers, Rg, idx_i, idx_j):
 
 
 def eval_ground(g: Geoms, centers, Rg):
-    """Distance of every geom to plane z<=0 plus witness points.
+    """Ground-plane contacts for every geom, TWO points per capsule.
+
+    Each capsule segment endpoint generates its own independent contact
+    (own signed distance, own witness point) -- restoring a real support
+    polygon under flat feet and eliminating the argmin endpoint switch.
+    Spheres degenerate to coincident endpoints; callers apply a static
+    weight mask so they are counted once.
 
     Returns dict with:
-      dist    [E,G]  signed distance
-      p_body  [E,G,3] closest point ON THE BODY surface (body-attached)
-      p_world [E,G,3] projection on the plane
+      dist    [E,G,2]  signed distance per endpoint
+      p_body  [E,G,2,3] closest point ON THE BODY under each endpoint
+      p_world [E,G,2,3] projection on the plane
     """
     ai, bi = g.endpoints(centers, Rg)
-    # capsule-vs-plane: exact via lower endpoint; spheres degenerate to it.
-    zlow, argmin = torch.min(torch.stack([ai[..., 2], bi[..., 2]], dim=0), dim=0)
-    px = torch.where(argmin == 0, ai[..., 0], bi[..., 0])
-    py = torch.where(argmin == 0, ai[..., 1], bi[..., 1])
-    r = g.radius.unsqueeze(0)
-    dist = zlow - r
-    p_body = torch.stack([px, py, zlow - r], dim=-1)
-    p_world = torch.stack([px, py, torch.zeros_like(px)], dim=-1)
+    r = g.radius.unsqueeze(-1)                                     # [G,1]
+    # stack endpoints: index -1 => point "a", index -2 => point "b"
+    ex = torch.stack([ai, bi], dim=-2)                             # [E,G,2,3]
+    dist = ex[..., 2] - r                                          # [E,G,2]
+    p_body = torch.cat([ex[..., :2],
+                        (ex[..., 2] - r).unsqueeze(-1)], dim=-1)   # [E,G,2,3]
+    p_world = torch.stack([ex[..., 0], ex[..., 1],
+                           torch.zeros_like(ex[..., 0])], dim=-1)
     return {"dist": dist, "p_body": p_body, "p_world": p_world}

@@ -21,7 +21,7 @@ from typing import List, NamedTuple, Optional
 import torch
 
 from .articulation import Articulation, Model
-from .collision import Geoms, eval_ground, eval_pairs, smooth_ramp, softplus_pen
+from .collision import SPHERE, Geoms, eval_ground, eval_pairs, smooth_ramp, softplus_pen
 
 
 
@@ -37,8 +37,10 @@ class ContactConfig:
     beta: float = 200.0              # (legacy) softplus sharpness
     smooth: float = 1e-4             # contact ramp smoothing width [m]
     v_reg: float = 0.05              # tangential velocity regularization [m/s]
-    limit_k: float = 5.0e4           # joint-limit spring stiffness
-    limit_beta: float = 100.0        # joint-limit softness
+    limit_k: float = 200.0           # joint-limit spring stiffness
+    limit_beta: float = 20.0         # joint-limit softness
+                                     # max slope = k*beta*0.5 must stay
+                                     # below I_min * (dt-stable omega)^2
 
 
 @dataclasses.dataclass
@@ -100,6 +102,18 @@ class DiffSim:
 
         self.ground_idx = torch.nonzero(self.geoms.collide_ground, as_tuple=True)[0]
         self.ground_body = self.geoms.body[self.ground_idx]  # [g]
+        # two contact points per ground geom (capsule endpoints); spheres
+        # have coincident endpoints -> weight [1,0] so they count once
+        ng = int(self.ground_idx.numel())
+        gw = torch.ones(ng, 2, dtype=torch.int64)
+        sph = self.geoms.gtype[self.ground_idx] == SPHERE
+        gw[sph, 1] = 0
+        self.ground_w = gw.to(device)
+        self.ground_body_rep = (
+            self.ground_body.unsqueeze(-1).expand(-1, 2).reshape(-1)
+        )                                                    # [2g]
+        # telemetry for non-smooth ops inside differentiated rollouts
+        self.clamp_stats = {"vn_cap_hits": 0.0, "vel_clamp_hits": 0.0}
 
     # ------------------------------------------------------------------ #
     # Jacobian helpers
@@ -164,38 +178,49 @@ class DiffSim:
         up = torch.tensor([0.0, 0.0, 1.0], dtype=q.dtype, device=q.device)
 
         # ---- ground -------------------------------------------------------
+        # TWO independent contact points per capsule endpoint: restores a
+        # support polygon under flat feet and removes the argmin switch.
         ng = int(self.ground_idx.numel())
         if ng > 0:
             gi = self.ground_idx
             res = eval_ground(self.geoms, centers, Rg)
-            dist = res["dist"][:, gi]                          # [E,g]
-            p_body = res["p_body"][:, gi]                      # [E,g,3] body pt
-            pen = smooth_ramp(cc.margin - dist, cc.smooth)
-            act = torch.where(pen > 0, pen / (pen + 1e-9), torch.zeros_like(pen))
+            dist = res["dist"][:, gi].reshape(E, -1)           # [E,2g]
+            p_body = res["p_body"][:, gi].reshape(E, -1, 3)    # [E,2g,3]
+            # clamp matters: unclamped smooth_ramp sits at -eps/2 for
+            # SEPARATED geoms -> constant suction -> act<0 -> friction
+            # becomes anti-damping on every non-touching contact.
+            pen = smooth_ramp(cc.margin - dist, cc.smooth).clamp(min=0.0)
+            # activation gate width MATCHES the ramp width (cc.smooth);
+            # a 1e-9 guard here made the gate a ~10nm delta function.
+            act = pen / (pen + cc.smooth)
 
-            vb = self._point_velocities(qd, sub, p_body, self.ground_body) \
+            gw = self.ground_w.reshape(-1)                     # [2g] {1,0}
+            vb = self._point_velocities(qd, sub, p_body,
+                                        self.ground_body_rep) \
                 if qd is not None else None
             n_hat = up.expand_as(p_body)
-            fn = cc.k_ground * pen                             # [E,g]
+            fn = cc.k_ground * pen * gw                        # spheres counted once
             f_vec = fn.unsqueeze(-1) * n_hat                   # push up
             if vb is not None:
                 vn = (vb * n_hat).sum(-1)                      # <0 approaching
-                vn_c = torch.clamp(-vn, max=2.0)                # cap approach speed
+                cap_hits = float(((-vn > 2.0) & (act > 1e-6)).sum())
+                self.clamp_stats["vn_cap_hits"] += cap_hits
+                vn_c = torch.clamp(-vn, max=2.0)               # cap approach speed
                 fn = fn + cc.damping * act * smooth_ramp(vn_c, 1e-3)
                 vt = vb - vn.unsqueeze(-1) * n_hat
                 vtn = torch.linalg.vector_norm(vt, dim=-1)
                 ft = -(cc.mu * fn).unsqueeze(-1) * vt / (vtn.unsqueeze(-1) + cc.v_reg)
                 f_vec = fn.unsqueeze(-1) * n_hat + ft
 
-            n_active = n_active + act.sum(-1)
+            n_active = n_active + (act * gw).sum(-1)
             pts_all.append(p_body)
             f_all.append(f_vec)
-            bod_all.append(self.ground_body.unsqueeze(0).expand(E, -1))
+            bod_all.append(self.ground_body_rep.unsqueeze(0).expand(E, -1))
             if getattr(self, "_feet_geoms", None):
                 pos_in_g = {int(gi[k]): k for k in range(ng)}
                 cols = [pos_in_g[g] for g in self._feet_geoms if g in pos_in_g]
                 if cols:
-                    feet_fnz = fn[:, torch.tensor(cols, device=q.device)]
+                    feet_fnz = fn.view(E, ng, 2)[:, torch.tensor(cols, device=q.device)].sum(-1)
 
         # ---- self-collision pairs ------------------------------------------
         np_ = int(self.pair_i.numel())
@@ -203,8 +228,8 @@ class DiffSim:
             res = eval_pairs(self.geoms, centers, Rg, self.pair_i, self.pair_j)
             dist = res["dist"]
             p1, p2 = res["p1"], res["p2"]
-            pen = smooth_ramp(cc.margin - dist, cc.smooth)
-            act = torch.where(pen > 0, pen / (pen + 1e-9), torch.zeros_like(pen))
+            pen = smooth_ramp(cc.margin - dist, cc.smooth).clamp(min=0.0)
+            act = pen / (pen + cc.smooth)
 
             diff = p1 - p2
             n_hat = diff / torch.clamp(
@@ -254,12 +279,20 @@ class DiffSim:
         m = self.m
         tau = torch.zeros_like(qd)
         if m.limit_dof_idx is not None and m.limit_dof_idx.numel() > 0:
-            idx = m.limit_dof_idx
+            # limits are stored per DOF (V-space); hinge/slide angles live in
+            # Q-space at _qs[body] which SHIFTS by +1 per preceding multi-dof
+            # joint -- never index q with raw dof ids.
+            q_idx = []
+            for d in m.limit_dof_idx.tolist():
+                b = int(m.dof_body[d])
+                q_idx.append(self.art._qs[b])
+            idx = torch.tensor(q_idx, dtype=torch.long, device=q.device)
             ql = q.index_select(1, idx)
             pen_lo = softplus_pen(m.joint_limit_lo - ql, cc.limit_beta)
             pen_hi = softplus_pen(ql - m.joint_limit_hi, cc.limit_beta)
             tau_lim = cc.limit_k * (pen_lo - pen_hi)
-            tau = tau.index_copy(1, idx, tau.index_select(1, idx) + tau_lim)
+            # write back into V-space at the true dof indices
+            tau = tau.index_copy(1, m.limit_dof_idx, tau_lim)
         if m.damping is not None:
             tau = tau - m.damping * qd
         return tau
@@ -322,6 +355,8 @@ class DiffSim:
                 qdc = qdc + dt * qdd
                 if self.cfg.max_vel is not None:
                     nrm = qdc.norm(dim=-1, keepdim=True)
+                    hit = (nrm > self.cfg.max_vel)
+                    self.clamp_stats["vel_clamp_hits"] += float(hit.sum())
                     qdc = qdc * torch.clamp(self.cfg.max_vel / (nrm + 1e-12), max=1.0)
                 qc = self.art.integrate(qc, qdc, dt)
             if not train_mode:
