@@ -1,3 +1,4 @@
+import os
 """Bouncing ball on flat floor: contact model validation under repeated impacts.
 
 A point mass bouncing vertically on our softplus contact model should show:
@@ -12,7 +13,8 @@ import sys
 import torch
 import math
 
-sys.path.insert(0, '/Code/0x-differentiable-sim-project')
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
 from diffsim.collision import softplus_pen
 
 
