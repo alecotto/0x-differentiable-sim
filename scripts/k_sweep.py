@@ -22,7 +22,7 @@ def main():
         x2 = x1 + kick
         lam, _ = benettin_generic(step, x1, x2,
                                   dt_substep=dt_per_call,
-                                  steps=500, renorm=25, delta0=1e-9)
+                                  steps=100, renorm=25, delta0=1e-9)
         print(f"{k:>10.0e} {lam:>12.1f}", flush=True)
 
 if __name__ == "__main__":

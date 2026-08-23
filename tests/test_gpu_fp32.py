@@ -1,5 +1,6 @@
 import sys, torch
-sys.path.insert(0, '/Code/0x-differentiable-sim-project')
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
 from diffsim.humanoid import make_soma_humanoid, initial_pose
 from diffsim import build_geoms_compat
 from diffsim.sim import DiffSim, SimConfig, ContactConfig
