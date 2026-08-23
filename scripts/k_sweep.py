@@ -10,7 +10,8 @@ def main():
     print(f"{'k_ground':>10} {'lambda(/s)':>12}")
     for k in ks:
         model, sim = make_stand_sim(k_ground=k)
-        step = standing_step_fn_factory(sim)
+        dt_per_call = sim.cfg.dt * sim.cfg.n_substeps
+        step = standing_step_fn_factory(sim, dt_per_call)
         nq = sim.art.nq
         q = torch.zeros(1, nq, dtype=DT)
         q[0, model.q_free_start] = 1.0
@@ -20,7 +21,7 @@ def main():
         kick = torch.zeros_like(x1); kick[nq] = 1e-9   # velocity kick on torso
         x2 = x1 + kick
         lam, _ = benettin_generic(step, x1, x2,
-                                  dt_substep=sim.cfg.dt * sim.cfg.n_substeps,
+                                  dt_substep=dt_per_call,
                                   steps=500, renorm=25, delta0=1e-9)
         print(f"{k:>10.0e} {lam:>12.1f}", flush=True)
 

@@ -68,7 +68,7 @@ def test_benettin_matches_analytic_damped_equilibrium():
     time bookkeeping is consistent.
     """
     damping = 0.8
-    dt = 1e-4
+    dt = 5e-3
     model = _build_pendulum(2)
     art = Articulation(model)
     # NOTE: do NOT set model.damping — damping is applied ONLY via the
@@ -86,7 +86,7 @@ def test_benettin_matches_analytic_damped_equilibrium():
     for d0 in [1e-6, 1e-9]:
         x2 = x_base + kick_dir / kick_dir.norm() * d0
         lam, _ = benettin_generic(step, x_base.clone(), x2.clone(),
-                                  dt_substep=dt, steps=500, renorm=25,
+                                  dt_substep=dt, steps=40000, renorm=100,
                                   delta0=d0)
         lams.append(lam)
         print(f"  benettin(d0={d0:.0e}) = {lam:+.5f} /s")
@@ -102,7 +102,7 @@ def test_benettin_matches_analytic_damped_equilibrium():
 def test_chaotic_regime_positive_lambda():
     model = _build_pendulum(2)
     art = Articulation(model)
-    dt = 1e-4
+    dt = 5e-3
     step = make_pendulum_step(art, dt=dt, damping=0.0)
 
     x1 = torch.tensor([0.6, 0.9, 2.5, -1.5], dtype=DT)
