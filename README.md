@@ -52,7 +52,16 @@ BPTT vs central-FD, matched E=64 batch, fd_eps plateau verified:
 Per-env distribution (E=16, H=32): median cos = 1.000000, worst = 1.000000,
 worst rel_err = 5e-5 across all 16 environments individually.
 
-### Known limitations
+### GPU validation [RTX 3090, CUDA]
+
+fp32 and fp64 produce **identical** com_z trajectories on CUDA (100 control
+steps, standing humanoid): `fp64=[0.8629...0.8616]`, `fp32=[0.8629...0.8616]`.
+Throughput is currently ~500 env-steps/s at E=256 due to Python-loop kernel-
+launch overhead (~200 launches × 8 substeps per control step). This is NOT
+compute-bound — fp32≡fp64 timing confirms it. Fix requires vectorizing
+body/dof loops into padded tensor operations.
+
+## Known limitations
 
 | Limitation | Impact | Status |
 |---|---|---|
