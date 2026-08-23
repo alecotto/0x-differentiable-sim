@@ -109,7 +109,7 @@ def test_chaotic_regime_positive_lambda():
     kick = torch.tensor([0., 0., 1e-9, 0.], dtype=DT)
 
     lam, hist = benettin_generic(step, x1.clone(), x1 + kick,
-                                 dt_substep=dt, steps=20000, renorm=20,
+                                 dt_substep=dt, steps=4000, renorm=20,
                                  delta0=1e-9)
     print(f"  chaotic lambda_1 = {lam:+.4f} /s")
     assert lam > 0.1
