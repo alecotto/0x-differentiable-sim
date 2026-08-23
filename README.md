@@ -35,8 +35,38 @@ aggressive audit under perturbed initial conditions.
 | Analytic unstable rate √(mgd/I) | **+3.36 /s** | bare inverted pendulum without control |
 | Sign flip (uncontrolled→controlled) | +3.36 → −2.87 | PD stabilization works correctly |
 | k_ground dependence | invariant across decade (2.5e3–2.5e5) | contact spring not dominant instability |
-| Chaotic double pendulum λ₁ | **+0.80 /s** | estimator detects real chaos ✓ |
+| Chaotic double pendulum λ₁ | **+0.09 ± 0.02 /s** (dt=2e-4, T=60 s, released-from-rest ICs) | estimator detects real chaos ✓ |
 | Estimator δ₀-invariance | spread 0.000 across {1e-6, 1e-9} | ✓ |
+| Integrator dissipation bias | λ₁ = +0.047 (dt=5e-3) → +0.075 (2e-3) → +0.116 (1e-3) → ~+0.09–0.10 (≤5e-4) | coarse-dt semi-implicit Euler suppresses chaos; exponents are properties of the simulated map |
+
+**Correction history**: an earlier table entry claimed chaotic λ₁ = +0.80 /s.
+That number is not reproducible under the post-`b0fb030` accumulator and is
+attributed to the pre-fix accumulation bug. Any document citing +0.80/s
+should be considered superseded by this table.
+
+### Full Lyapunov spectra inside AD (`diffsim.lyapunov_spectrum`)
+
+New capability: the complete spectrum λ₁…λₙ from forward-mode tangent
+propagation (`torch.func.jvp`, exact Jacobian action — no finite
+differences) with QR-reorthonormalized Benettin accumulation.
+
+| Check | Result |
+|---|---|
+| One-step Jacobian, AD vs central-FD | rel err 1.6e-10 |
+| Chaotic double pendulum spectrum | [+0.11, +0.08, −0.00, −0.21] (dt=5e-3); λ₁ matches independent FD-Benettin within finite-time error |
+| Hamiltonian structure | symmetric spectrum, Σλᵢ = −0.015 ≈ 0 (O(dt) volume bias), seed-invariant |
+| Damped equilibrium vs discrete-map eigenvalues | pair-means match log\|eig(J_step)\|/dt to <0.01 |
+| Sum rule | Σλᵢ = −12.72 vs (⟨tr J⟩−n)/dt = −12.64 ✓ |
+| **Chaotic impact oscillator** (bouncing ball on vibrating table, Γ≈2) | spectrum [+1.01, +0.05, −1.10]; λ₁ matches FD-Benettin; **tangents cross impacts with no saltation correction** |
+| Differentiable spectrum dλ/dc | autodiff −0.174966 vs central-FD −0.174979 |
+
+Implementation notes (negative results worth remembering):
+* Cotangent propagation `W ← Jᵀ W` with LQ filtering computes *adjoint*
+  exponents — NOT the Lyapunov spectrum for non-normal maps (measured
+  σ_max(J)=1.11 → σ_max(J⁵⁰)=2.45 despite ρ(J)<1: transient growth).
+* Reverse-mode through `torch.func.jvp`/`jacrev` produces NaN grads;
+  `lyapunov_spectrum_diff` instead builds each J column-by-column with
+  plain `autograd.grad(..., create_graph=True)` so dλ/dθ flows exactly.
 
 ### Gradient fidelity horizon sweep
 
