@@ -1,3 +1,4 @@
+import os
 """Probe: is einsum/index_put backward broken in this torch build?"""
 import sys
 import torch
@@ -5,7 +6,8 @@ import torch
 DT = torch.float64
 torch.manual_seed(0)
 eps = 1e-6
-sys.path.insert(0, '/Code/0x-differentiable-sim-project')
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
 
 
 def fd_grad(f, x):

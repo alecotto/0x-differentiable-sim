@@ -1,3 +1,4 @@
+import os
 """Decisive split for humanoid tumble divergence: force correctness vs
 integrator stability.
 
@@ -12,7 +13,8 @@ import sys
 
 import torch
 
-sys.path.insert(0, '/Code/0x-differentiable-sim-project')
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
 from diffsim.humanoid import make_soma_humanoid          # noqa: E402
 from diffsim import build_geoms_compat                    # noqa: E402
 from diffsim.sim import DiffSim, SimConfig                # noqa: E402

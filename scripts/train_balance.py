@@ -1,3 +1,4 @@
+import os
 """Train push-recovery standing on the SOMA-class humanoid with SHAC-lite.
 
 Short-horizon BPTT (H steps, measured clean-gradient window) + value
@@ -9,7 +10,8 @@ import time
 
 import torch
 
-sys.path.insert(0, '/Code/0x-differentiable-sim-project')
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
 from diffsim.humanoid import make_soma_humanoid, initial_pose   # noqa: E402
 from diffsim import build_geoms_compat                           # noqa: E402
 from diffsim.sim import DiffSim, SimConfig, ContactConfig        # noqa: E402
@@ -112,7 +114,7 @@ def main(smoke=False):
 
     start_iter = 0
     import os
-    ckpt_path = "/Code/0x-differentiable-sim-project/models/shac_balance.pt"
+    ckpt_path = os.path.join(_ROOT, "models", "shac_balance.pt")
     if "--resume" in sys.argv and os.path.exists(ckpt_path):
         ck = torch.load(ckpt_path, map_location="cpu", weights_only=True)
         ac.load_state_dict(ck["ac"])
@@ -193,7 +195,7 @@ def main(smoke=False):
                     "opt_actor": trainer.opt_actor.state_dict(),
                     "opt_critic": trainer.opt_critic.state_dict(),
                     "iter": it},
-                   "/Code/0x-differentiable-sim-project/models/shac_balance.pt")
+                   os.path.join(_ROOT, "models", "shac_balance.pt"))
 
 
 if __name__ == "__main__":

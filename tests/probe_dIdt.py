@@ -1,10 +1,12 @@
+import os
 """Probe: validate closed-form dI/dt blocks + per-body IVdot vs FD truth."""
 import sys
 
 import torch
 
-sys.path.insert(0, '/Code/0x-differentiable-sim-project')
-sys.path.insert(0, '/Code/0x-differentiable-sim-project/tests')
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
+sys.path.insert(0, os.path.join(_ROOT, 'tests'))
 
 from test_dynamics import _build_pendulum
 from diffsim.articulation import Articulation

@@ -1,3 +1,4 @@
+import os
 """fp32 vs fp64-oracle tolerance harness.
 
 The production path runs fp32 on GPU; correctness is anchored to the fp64
@@ -12,7 +13,8 @@ import time
 
 import torch
 
-sys.path.insert(0, '/Code/0x-differentiable-sim-project')
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
 from diffsim.humanoid import make_soma_humanoid, initial_pose   # noqa: E402
 from diffsim import build_geoms_compat                           # noqa: E402
 from diffsim.sim import DiffSim, SimConfig                       # noqa: E402

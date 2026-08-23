@@ -79,7 +79,7 @@ def delta0_invariance_check(step_fn, x_base: torch.Tensor,
     lams = []
     for d0 in deltas:
         x2 = x_base + kick_dir * d0
-        lam, _, _ = benettin_generic(step_fn, x_base.clone(), x2.clone(),
+        lam, _ = benettin_generic(step_fn, x_base.clone(), x2.clone(),
                                      dt_substep, steps, renorm, d0)
         lams.append(lam)
     spread = (max(lams) - min(lams)) / max(abs(min(lams)), 1e-12)
@@ -103,8 +103,14 @@ def make_stand_sim(k_ground=None, device="cpu", dtype=DT):
 
 
 @torch.no_grad()
-def standing_step_fn_factory(sim):
+def standing_step_fn_factory(sim, dt_per_call: float):
+    """Returns a step function advancing ONE `dt_per_call` of sim time.
+    Asserts the caller passes a dt consistent with sim's control step:
+    dt_per_call == cfg.dt * cfg.n_substeps."""
     art = sim.art
+    expected = sim.cfg.dt * sim.cfg.n_substeps
+    assert abs(dt_per_call - expected) < 1e-12, (
+        f"dt_per_call={dt_per_call} != cfg.dt*n_substeps={expected}")
 
     def step(x):
         nq = art.nq
