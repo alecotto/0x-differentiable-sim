@@ -27,25 +27,40 @@ vs smoothed central-FD reference, split-sample floors logged:
    directional rotation without norm growth.
 2. **Stiff contact (k≥2.5e5, few substeps per compression)**: the
    ANALYTIC gradient norm detonates (‖g‖ ∼ 10⁷–10⁸) crossing the event
-   while FD sees O(0.1–7). ε-convergence test: FD norms GROW toward the
-   analytic value as ε→0 (0.055→0.66 halving ε, cos→0.976) — the
-   objective has cusp-like local structure and the huge derivative is
-   PHYSICAL (rebound-timing amplification of the true map), not an
-   integrator artifact. Explicit vs implicit damping makes no
-   difference (both explode identically).
+   while FD sees O(0.1–7). ε-convergence diagnostic settles *what* it
+   is: ‖g_fd‖·ε is constant (~3.1–3.3e-6) across ε∈[5e-6, 4e-5] with
+   ‖g_fd⟩ doubling per halving — the exact signature of a **finite jump**
+   in the objective (a step Δ≈6.4e-6 gives ‖g_fd‖=Δ/(2ε), diverging
+   forever; a steep-but-finite derivative would instead converge). cos
+   saturates at ~0.976 rather than →1. So: the objective has a jump at
+   contact events in this regime; the analytic gradient retains ~97.6%
+   correct direction but its magnitude describes a boundary layer of
+   width Δ/‖g_ana‖ ≈ 6e-13 m — below any physical scale in the system.
+   This is the softplus knee being resolved, not contact mechanics.
+   Explicit vs implicit damping makes no difference (both explode
+   identically): not an integrator artifact.
 3. Transition location does **not** collapse on Π₁ = √(m_eff/k)/dt
    alone: matched-Π₁ configs differ (k=2.5e6/dt=3.16e-5 is clean at the
    same Π₁ where k=2.5e5/dt=1e-4 explodes), and narrowing the softplus
    ramp β_soft 1e4→1e5 at fixed (k,dt) flips clean→rotated (Δcos
    0→0.26). Strike-speed logging added; group search continues.
 
-Working synthesis: BOTH pathologies are real and regime-dependent —
-direction rotation in the soft regime, true-Lipschitz norm explosion in
-the stiff regime — and the transition depends on contact resolution and
-ramp width jointly. If that structure survives the full grid, the field's
-"gradients explode at contact" intuition is right for the wrong reason:
-the explosion reflects a genuine property of the physical map
-(rebound sensitivity), which no integrator choice removes.
+Working synthesis (revised after the jump finding): the stiff-regime
+"explosion" is the analytic gradient differentiating a **numerical
+smoothing artifact** — the objective contains a finite jump created by
+the softplus knee, and BPTT honestly reports the knee's inverse width.
+Direction rotation at ~constant norm (soft regime) and jump-
+differentiation (stiff regime) are both real; neither is a true-Lipschitz
+property of contact mechanics. Working hypothesis for the collapse
+variable: the ramp must satisfy TWO constraints simultaneously —
+
+    static:   δ_pen = mg/(n·k)  ≫  ε_ramp      (operate off the knee)
+    dynamic:  Π_ramp = ε_ramp/(vₙ·dt) ≫ 1       (several substeps across it)
+
+which bracket ε_ramp from opposite sides and yield a closed-form maximum
+usable stiffness k ≪ mg/(n·vₙ·dt). Δcos-vs-Π_ramp collapse test under
+way (vₙ logging being added); if it collapses near Π_ramp ≈ 1–3, that
+inequality is the practitioner-facing result.
 
 ### Physics correctness
 
@@ -151,10 +166,17 @@ Matched-precision bisection of the onset slopes (criterion: Poincaré
 point-count change, ≤1e-5 brackets, `benchmarks/garcia_feigenbaum.json`):
 γ₂=0.014699, γ₄=0.017268, γ₈=0.017748 →
 
-    δ₁ = (γ₄−γ₂)/(γ₈−γ₄) = 5.35
+    δ₁ = (γ₄−γ₂)/(γ₈−γ₄) = 5.35 ± 0.16
 
-vs published accumulated ratios 5.9 → 4.67 (Feigenbaum). The cascade is
-reproduced **quantitatively**, not just structurally.
+Published first accumulated ratio: 5.9. **That is a 3.4σ gap and we do
+not claim agreement.** Measured on oracle-A (β→0 paper-faithful), so
+finite-β is not an available explanation; live hypotheses are (a) onset
+criterion differs from the paper's, (b) the published ratios are
+themselves approximate. Discriminator: δ₂ = (γ₈−γ₄)/(γ₁₆−γ₈), which must
+approach 4.669 from above — if δ₂ ≈ 4.8–5.0 the sequence is converging
+correctly and the δ₁ gap is definitional; if it is off-trend the onset
+criterion has a real problem. γ₁₆ bisection running
+(`benchmarks/garcia_feigenbaum_d2.json` when done).
 
 ### Walker hybrid-map Lyapunov spectrum [Q5 × Q1c]
 
