@@ -147,8 +147,14 @@ Documented subtleties (each caught by a physical check):
 | 0.018 | **chaotic** (spread 0.023) | cascade complete ~0.019 ✓ |
 | ≥0.019 | falls | walker falls above cascade ✓ |
 
-Onset-slope bisection for Feigenbaum-ratio estimation running; structure
-already matches the published diagram qualitatively at every stage.
+Matched-precision bisection of the onset slopes (criterion: Poincaré
+point-count change, ≤1e-5 brackets, `benchmarks/garcia_feigenbaum.json`):
+γ₂=0.014699, γ₄=0.017268, γ₈=0.017748 →
+
+    δ₁ = (γ₄−γ₂)/(γ₈−γ₄) = 5.35
+
+vs published accumulated ratios 5.9 → 4.67 (Feigenbaum). The cascade is
+reproduced **quantitatively**, not just structurally.
 
 ### Walker hybrid-map Lyapunov spectrum [Q5 × Q1c]
 
