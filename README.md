@@ -14,29 +14,38 @@ environments `E` rides the leading dimension of every tensor.
 All results below were produced by code at the current commit, verified by
 aggressive audit under perturbed initial conditions.
 
-### Gradient pathology is conditioning and direction — not magnitude?
+### Gradient behaviour across contact events: two regimes (in progress)
 
-**Preliminary (n=1 configuration).** On push-recovery at `k=2.5e4, b=400,
-μ=3`, contact transitions leave gradient norm essentially unchanged
-(ratio 0.99) while rotating gradient direction (cosine −0.07 → −0.23).
-Whether this generalises across stiffness, impact velocity, and timestep
-is under investigation via a Δcos scaling sweep (dimensionless groups
-Π₁ = τ_contact/dt etc.) with oracle-B's rigid hybrid map as the
-saltation-corrected control. Not yet a finding.
+**Preliminary; sweep under way** (`scripts/q2a_dcos.py`,
+`benchmarks/q2a_dcos_*.json`). Walker heelstrike windows, analytic BPTT
+vs smoothed central-FD reference, split-sample floors logged:
 
-Supporting context from earlier measurements (independent, but not part
-of the same experiment):
+1. **Soft contact (k=2.5e4)**: analytic == FD to reported precision
+   (cos ≥ 0.999 across events, floors ≈ 1.0) at every dt tested
+   (1e-4–4e-4). The original humanoid n=1 measurement (norm ratio 0.99,
+   cosine rotation −0.07→−0.23 across events) lives in this regime:
+   directional rotation without norm growth.
+2. **Stiff contact (k≥2.5e5, few substeps per compression)**: the
+   ANALYTIC gradient norm detonates (‖g‖ ∼ 10⁷–10⁸) crossing the event
+   while FD sees O(0.1–7). ε-convergence test: FD norms GROW toward the
+   analytic value as ε→0 (0.055→0.66 halving ε, cos→0.976) — the
+   objective has cusp-like local structure and the huge derivative is
+   PHYSICAL (rebound-timing amplification of the true map), not an
+   integrator artifact. Explicit vs implicit damping makes no
+   difference (both explode identically).
+3. Transition location does **not** collapse on Π₁ = √(m_eff/k)/dt
+   alone: matched-Π₁ configs differ (k=2.5e6/dt=3.16e-5 is clean at the
+   same Π₁ where k=2.5e5/dt=1e-4 explodes), and narrowing the softplus
+   ramp β_soft 1e4→1e5 at fixed (k,dt) flips clean→rotated (Δcos
+   0→0.26). Strike-speed logging added; group search continues.
 
-1. Non-normal transient growth: σ_max(J) = 1.11 → σ_max(J⁵⁰) = 2.45 in an
-   asymptotically *stable* system (ρ(J) < 1).
-2. Standing mode: λ = −2.87 (strongly contracting), yet finite-horizon
-   gradient direction remains the sensitive quantity.
-
-If the directional-rotation effect proves general, half the standard
-mitigation toolkit (clipping, shorter horizons) targets the wrong failure
-mode — norm explosion — while direction rotation is immune to both.
-That implication motivates the sweep; it is not established by the n=1
-measurement above.
+Working synthesis: BOTH pathologies are real and regime-dependent —
+direction rotation in the soft regime, true-Lipschitz norm explosion in
+the stiff regime — and the transition depends on contact resolution and
+ramp width jointly. If that structure survives the full grid, the field's
+"gradients explode at contact" intuition is right for the wrong reason:
+the explosion reflects a genuine property of the physical map
+(rebound sensitivity), which no integrator choice removes.
 
 ### Physics correctness
 
