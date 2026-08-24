@@ -14,6 +14,23 @@ environments `E` rides the leading dimension of every tensor.
 All results below were produced by code at the current commit, verified by
 aggressive audit under perturbed initial conditions.
 
+### Gradient pathology is conditioning and direction — not magnitude
+
+Three independent measurements in this repo converge on a claim that
+inverts the field's default assumption ("gradients explode at contact"):
+
+1. Non-normal transient growth: σ_max(J) = 1.11 → σ_max(J⁵⁰) = 2.45 in an
+   asymptotically *stable* system (ρ(J) < 1).
+2. Standing mode: λ = −2.87 (strongly contracting), yet finite-horizon
+   gradient direction remains the sensitive quantity.
+3. Contact transitions (push-recovery humanoid): gradient **norm** at
+   events = 0.99× within-phase norm, while gradient **direction** rotates
+   (cos −0.07 → −0.23 across events).
+
+Magnitude is benign; conditioning and rotation are the pathology. Any
+optimizer design for contact-rich differentiable simulation should be
+built around that.
+
 ### Physics correctness
 
 | Property | Verified how | Result |
@@ -85,6 +102,7 @@ equivalence — zero collision-code changes).
 | Impact: kinetic energy | ratio post/pre = 0.834 (strictly dissipative, plastic) |
 | Period-one FP @ γ=0.009 vs mapped Table-1 asymptotics | θ*, ω* match to 1.9e-4 / 4.3e-4; ρ=0.58 attracting |
 | Stride closure from mapped FP | closes at τ=0.8935 s (=3.957 dimensionless vs paper 3.88) |
+| **β-convergence of stride period** | β=0.05: 3.957 (2.0% off); **β=0.02: T=0.875 s vs 3.88·√(l/g)=0.876 s — 0.1%**. The residual at β=0.05 was pure finite-β: θ*, ω*, AND τ now converge together, anchoring the O(β) story across three independent quantities. |
 
 Documented subtleties (each caught by a physical check):
 1. Garcia's rates are DIMENSIONLESS (τ=t√(g/l)); seeding without
@@ -133,33 +151,47 @@ multi-DOF hybrid locomotion.
 
 ### Compliant twin (DiffSim): current empirical status
 
-At default humanoid contact parameters and point feet (k=2.5e4 N/m,
-b=400 Ns/m, μ=3, foot mass 0.02M, slopes 0.009–0.015 rad true-tilted
-gravity), an extensive scan (~200 ICs/slope × multiple (k,b) windows
-including underdamped b=60 and stiff k≤4e5) finds:
+**Coverage disclosure (read before quoting).** An earlier degrees/radians
+bug (`slope_gravity` took degrees, callers passed radians) silently ran
+every twin simulation before commit `1983c71` at effective slope
+γ_eff ≈ 9×10⁻⁵ rad — flat ground. All scans from before that commit are
+**invalidated as slope measurements** and were discarded. What follows is
+the post-fix record only.
 
-* **No passive walking limit cycle.** Attractors are: falls within
-  ~1–2 steps (majority), and a two-foot rocking-in-place equilibrium
-  (legs ±0.11 rad, both feet penetrated ~2 mm, alternating
-  micro-contacts with zero net advance).
-* First heelstrike from oracle-mid-stance seeds is clean and correctly
-  timed; failure occurs at LOAD TRANSFER: the trailing foot drags
-  through the compliant unloading window, dissipating energy on the
-  order of the entire per-stride slope input (mgΔh ≈ 0.34 J vs
-  ∫b·vₙ²dt ≈ 0.1 J *per strike window*).
-* Energy arithmetic explains the pattern: the rigid gait's impact loss
-  (KE ratio 0.83/stride) is exactly balanced by slope input; ANY
-  additional compliant-contact dissipation pushes the machine below
-  walking sustain. Consistent with every scanned configuration.
-* Historical caveat: all scans before commit 1983c71 ran at effective
-  slope 9e-5 rad (degrees/radians bug) — post-fix scans only above.
+**Post-fix scanned to date** (point feet r=1 mm, foot mass βM=0.02,
+semi-implicit Euler):
 
-Interpretation for the science questions: reproducing rigid-limit
-hybrid locomotion inside a soft-contact engine may REQUIRE either arc
-feet (rolling toe-off restores clearance + removes drag), stiffer-than-
-humanoid contact scaling, or slight actuation — quantifying which is
-precisely the Q3 frontier. This negative result is measured, not
-assumed; the search continues along those three axes.
+| slopes | k [N/m] | b [Ns/m] | μ | ICs/config | result |
+|---|---|---|---|---|---|
+| 0.009–0.015 | 2.5e4 | 400 | **3** | 64 | falls + rocking-in-place |
+| 0.012 | 2.5e4–1e5 | 60–200 | 3 | 48 | falls + rocking-in-place |
+| 0.015, 0.022, 0.028 | 2.5e4–4e5 | 120–400 | 3 | 48 | falls + rocking-in-place |
+
+No passive walking orbit found in that set. The attractors are (a)
+falls within 1–2 steps and (b) a two-foot rocking-in-place equilibrium
+(legs ±0.11 rad, both feet penetrating ~2 mm, alternating micro-contacts,
+zero net advance).
+
+**What is NOT yet covered post-fix** (and therefore not claimable):
+any μ < 3 (physical rubber is 0.9–1.0); the steeper powered regime
+predicted by the energy budget below; implicit-damping runs at foot
+masses near Garcia's β→0 limit (now unblocked by the implicit damper);
+k ≥ 1e6.
+
+**Energy-budget hypothesis (falsifiable form).** At the rigid fixed point
+the impact loss (KE ratio 0.83/stride) is balanced by slope input. The
+compliant strike+drag window adds fractional dissipation f ≈ 0.29
+(measured single-strike loss ∫b·vₙ²dt ≈ 0.1 J vs per-stride input
+mgΔh ≈ 0.34 J at γ=0.009). If extra dissipation merely *shifts* the
+orbit's slope (the rigid orbit is attracting with finite basin width),
+walking should appear near
+
+    γ_twin ≈ γ_rigid / (1 − f) ≈ 0.009 / 0.71 ≈ 0.013,
+
+and the required slope should rise linearly with f. Scanning that
+window at μ=0.9 (post-fix, implicit damping) is the cheapest
+discriminating experiment available; a walk there confirms the budget,
+its absence refutes the dissipation-shift story.
 
 
 ### Gradient fidelity horizon sweep
