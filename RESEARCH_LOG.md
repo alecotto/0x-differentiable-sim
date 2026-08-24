@@ -38,9 +38,39 @@ simplest proofs first:
 - `tests/test_walker_oracle.py` — 5 tests, ALL PASS (~96 s).
 - Full suite: `python -m pytest tests/ -x -q` (~28 min).
 
-## WHERE I AM RIGHT NOW (session 3, update 3)
+## WHERE I AM RIGHT NOW (session 3, update 4)
 
-### CRITICAL BUG FIXED: degrees/radians slope mismatch
+### Negative result now well-supported (twin walking)
+Across TRUE slopes gamma in {0.009..0.028}, k in [2e4, 4e5], b in
+[60, 2500], mu in {0.9, 3}, point feet r=1mm, several hundred batched
+ICs: NO passive walking orbit. Attractors = falls + two-foot rocking-
+in-place (alternating micro-contacts, zero advance). Energy arithmetic:
+compliant strike+drag losses ~ per-strike 0.1 J vs total slope budget
+0.34 J/stride at gamma=0.009 -> any extra loss kills the marginal rigid
+balance. Data: benchmarks/twin_attractor_scan.json,
+twin_kb_scan{,_underdamped,_steep}.json.
+
+Escape axes not yet exhausted: arc feet (r>=25mm, needs oracle rolling
+rework), actuation (becomes Q2 task), even stiffer contact scaling.
+
+### Q5 x walker: hybrid-map Lyapunov spectra WORKING
+scripts/walker_lyapunov.py: FD-Benettin through the validated sympy
+flow + Newtonian impact map, 3-dim section. First result
+(gamma=0.009, beta=0.02): lam = [-1.216, -1.235, -21.82] /s,
+t_stride=0.875 s. All-negative (attracting) as required; third
+exponent = fast light-foot slaving. TODO: cross-check lambda_1 ==
+ln(rho)/T_stride with FD multipliers at MATCHED (gamma,beta).
+
+### Feigenbaum bisection running (slow: hours)
+/tmp/opencode/feig.log — bisecting onset slopes of 2x/4x/8x windows for
+delta estimate. Do not kill; results append to log only.
+
+### kb scans status
+All configs so far: no walking. Underdamped corners done; steep slopes
+done. Remaining untested: k>=1e6 with proportional damping (dt<=2e-5,
+expensive).
+
+### CRITICAL BUG FIXED (earlier this session): degrees/radians slope
 `walker.slope_gravity()` took DEGREES; every twin script passed RADIANS
 => ALL prior twin simulations ran at gamma_eff = 9e-5 rad (flat!).
 Explains: no-walking everywhere, slope-independent attractor scans,
