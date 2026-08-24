@@ -116,6 +116,21 @@ Documented subtleties (each caught by a physical check):
 Onset-slope bisection for Feigenbaum-ratio estimation running; structure
 already matches the published diagram qualitatively at every stage.
 
+### Walker hybrid-map Lyapunov spectrum [Q5 × Q1c]
+
+FD-Benettin through the validated sympy flow + Newtonian impact map
+(3-dim section, `scripts/walker_lyapunov.py`):
+
+| Check | Result |
+|---|---|
+| Spectrum @ γ=0.009, β=0.02 | λ = [−1.216, −1.235, −21.82] /s, T_stride=0.875 s |
+| λ₁ vs independent FD multipliers | ln(ρ)/T = **−1.2248** vs Benettin **−1.216** (0.7%) |
+| Structure | two slow exponents ≈ equal (gait contraction), third fast/negative = light-foot slaving |
+
+Tangents propagate through heelstrike events with no saltation
+correction, extending the earlier bouncing-ball finding to
+multi-DOF hybrid locomotion.
+
 ### Compliant twin (DiffSim): current empirical status
 
 At default humanoid contact parameters and point feet (k=2.5e4 N/m,
