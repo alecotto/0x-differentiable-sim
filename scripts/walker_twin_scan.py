@@ -27,10 +27,12 @@ from diffsim.walker import make_walker, build_geoms_simple, WALKER_P  # noqa
 from diffsim.sim import DiffSim, SimConfig, ContactConfig  # noqa
 
 
-def build(gamma, k=2.5e4, b=400., mu=0.9, dt=1e-4):
+def build(gamma, k=2.5e4, b=400., mu=0.9, dt=1e-4,
+          implicit_damping=False):
     model, gspec, feet, aux = make_walker()
     model.gravity = aux["slope_gravity"](gamma)
-    cc = ContactConfig(k_ground=k, damping=b, mu=mu, margin=0.0)
+    cc = ContactConfig(k_ground=k, damping=b, mu=mu, margin=0.0,
+                       implicit_damping=implicit_damping)
     sim = DiffSim(model, build_geoms_simple(gspec),
                   SimConfig(dt=dt, n_substeps=1, contact=cc),
                   dtype=torch.float64)
@@ -38,9 +40,10 @@ def build(gamma, k=2.5e4, b=400., mu=0.9, dt=1e-4):
     return sim
 
 
-def scan(gamma, E=64, T=3.0, dt=1e-4, k=2.5e4, b=400., mu=0.9, seed=0):
+def scan(gamma, E=64, T=3.0, dt=1e-4, k=2.5e4, b=400., mu=0.9, seed=0,
+         implicit_damping=False):
     rng = np.random.default_rng(seed)
-    sim = build(gamma, k, b, mu, dt)
+    sim = build(gamma, k, b, mu, dt, implicit_damping=implicit_damping)
     fs = sim.art.m.q_free_start
     l, r = WALKER_P["l"], WALKER_P["r_foot"]
     delta = WALKER_P["M"] * 9.81 / k
