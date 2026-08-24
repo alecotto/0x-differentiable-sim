@@ -1,0 +1,52 @@
+{
+ "g0.009": {
+  "labels": {
+   "fall": 23,
+   "steps-then-fall": 18,
+   "shuffle": 7
+  },
+  "max_strikes": 53,
+  "best_advance": 0.0,
+  "walk_ics": []
+ },
+ "g0.011": {
+  "labels": {
+   "fall": 23,
+   "steps-then-fall": 18,
+   "shuffle": 7
+  },
+  "max_strikes": 53,
+  "best_advance": 0.0,
+  "walk_ics": []
+ },
+ "g0.013": {
+  "labels": {
+   "fall": 24,
+   "steps-then-fall": 17,
+   "shuffle": 7
+  },
+  "max_strikes": 50,
+  "best_advance": 0.0,
+  "walk_ics": []
+ },
+ "g0.015": {
+  "labels": {
+   "fall": 25,
+   "steps-then-fall": 17,
+   "shuffle": 6
+  },
+  "max_strikes": 50,
+  "best_advance": 0.0,
+  "walk_ics": []
+ },
+ "g0.018": {
+  "labels": {
+   "fall": 25,
+   "steps-then-fall": 17,
+   "shuffle": 6
+  },
+  "max_strikes": 50,
+  "best_advance": 0.0,
+  "walk_ics": []
+ }
+}

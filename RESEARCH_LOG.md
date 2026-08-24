@@ -38,7 +38,42 @@ simplest proofs first:
 - `tests/test_walker_oracle.py` — 5 tests, ALL PASS (~96 s).
 - Full suite: `python -m pytest tests/ -x -q` (~28 min).
 
-## SESSION 3 FINAL STATE (wrap-up)
+## SESSION 4 (feedback-driven)
+
+### Feedback review committed as: implicit damping (1c442cb), process fixes
+(58f6e48), README honesty rewrite + conditioning-not-magnitude elevation +
+beta column (0e448e5).
+
+### Implicit contact damping — DONE, validated
+Flag `ContactConfig.implicit_damping` (default False): normal damper
+integrated via frozen-coefficient solve (M + dt R^T B R) qd+ = M qd_euler.
+- accuracy at dt=1e-4 in stable regime: rel err vs fine-explicit(2e-5)
+  reference 0.142 (implicit) vs 0.154 (coarse explicit) — physics kept
+- light-foot regime (beta=0.001): explicit transient |w|=38.8, implicit 3.7
+- existing tests green with flag off
+
+### ENERGY-BUDGET PREDICTION REFUTED (important)
+Prediction: walking near gamma_twin = gamma_rigid/(1-f) = 0.009/0.71 =
+0.0127 (f=0.29 measured single-strike dissipation fraction).
+Result (mu=0.9 post-fix, implicit damping, E=48 ICs x gamma in
+{0.009,0.011,0.013,0.015,0.018}): NO walking anywhere
+(benchmarks/twin_prediction_scan.json). The dissipation-shift story is
+WRONG as stated.
+
+Refined mechanism hypothesis (from combined evidence): mid-swing seeds DO
+complete one clean stride (15mm swing clearance achieved); the failure is
+POST-STRIKE RE-INITIATION of swing — the new trailing foot never lifts
+(max observed clearance ~0.5 mm before settling back into the rocking
+attractor). Structural/geometric blocker, not a power margin. This is why
+arc feet (geometric toe-off) are the natural next morphology, and why
+minimum-actuation is the right Q2 framing.
+
+### beta=0.001 twin scans LAUNCHED (unblocked by implicit damping)
+/tmp/opencode/beta_scan.log — first runs in Garcia's asymptotic foot-mass
+regime ever possible in this engine.
+
+### Feigenbaum bisection v2 running: matched <=1e-5 brackets, criterion =
+Poincare point-count (documented in script header). /tmp/opencode/feig2.log
 
 ### Done & pushed
 1. Garcia oracle-A full bifurcation diagram + cascade refinement
