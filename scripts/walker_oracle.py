@@ -463,8 +463,9 @@ def midstance_state(gamma, beta_target=None):
     AWAY from the double-support instant: compliant contacts make the
     instantaneous rigid-model liftoff sticky, so a TD-section seed falls
     into a braced two-foot standing attractor instead of walking."""
-    orc, s = continuation_fp(gamma, beta_target or P0["beta"])
-    if s is None:
+    out = continuation_fp(gamma, beta_target or P0["beta"])
+    orc, s = out[0], out[1]
+    if orc is None or s is None or not np.isscalar(s[0]):
         return None, None, None, None
     y = np.array([s[0], s[1], -s[0], s[2]])
     t = 0.0
