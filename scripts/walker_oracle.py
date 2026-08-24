@@ -412,6 +412,72 @@ def analytic_seed_garcia(gamma):
     return go.analytic_seed(gamma, "long")
 
 
+def continuation_fp(gamma, beta_target, betas=(0.001, 0.005, 0.01, 0.02,
+                                              0.035, 0.05)):
+    """Track the period-one fixed point in beta by continuation.
+
+    The Garcia-mapped seed lands in the basin only for small beta; larger
+    foot masses shift the gait.  Walk beta upward, seeding each solve
+    with the previous FP.
+    """
+    import garcia_oracle as go
+    fpG = go.shoot_fixed_point(gamma, go.analytic_seed(gamma, "long"))
+    if fpG is None:
+        return None, None
+    thG, wG = fpG["theta"], fpG["omega"]
+    wr = math.sqrt(9.81 / P0["l"])
+    c2 = math.cos(2 * thG)
+    s = np.array([-thG, -wG * wr,
+                  -wG * wr + c2 * (1 - c2) * (wG * wr / c2)])
+    chain = []
+    for b in betas:
+        if b > beta_target:
+            break
+        orc = WalkerOracle(gamma, beta=b)
+        r = orc.find_fixed_point(s)
+        if r is None:
+            # retry from perturbed seeds before giving up
+            for fac in (1.02, 0.98):
+                r = orc.find_fixed_point(np.array([s[0] * fac, s[1] * fac,
+                                                   s[2]]))
+                if r is not None:
+                    break
+        if r is None:
+            return None, chain
+        s = r["s"]
+        chain.append({"beta": b, "s": list(map(float, s)),
+                      "rho": r["rho"]})
+        if abs(b - beta_target) < 1e-12:
+            return orc, s
+    if abs(betas[-1] - beta_target) < 1e-12 or beta_target in betas:
+        return WalkerOracle(gamma, beta=beta_target), s
+    # beta_target beyond the chain end: one more step
+    orc = WalkerOracle(gamma, beta=beta_target)
+    r = orc.find_fixed_point(s)
+    return (orc, r["s"]) if r is not None else (None, chain)
+
+
+def midstance_state(gamma, beta_target=None):
+    """Full state on the periodic orbit at the theta1 = 0 crossing
+    (stance leg vertical, swing foot airborne).  Used to seed the twin
+    AWAY from the double-support instant: compliant contacts make the
+    instantaneous rigid-model liftoff sticky, so a TD-section seed falls
+    into a braced two-foot standing attractor instead of walking."""
+    orc, s = continuation_fp(gamma, beta_target or P0["beta"])
+    if s is None:
+        return None, None, None, None
+    y = np.array([s[0], s[1], -s[0], s[2]])
+    t = 0.0
+    prev = y[0]
+    while t < 25.0:
+        y = orc.flow_step(y)
+        t += orc.h
+        if prev < 0 <= y[0]:          # stance crossing vertical, forward
+            return orc, y, t, s
+        prev = y[0]
+    return orc, None, None, s
+
+
 if __name__ == "__main__":
     print("== walker oracle validation ==")
     e, byb, ratios = garcia_limit_check()

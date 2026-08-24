@@ -38,11 +38,18 @@ from .collision import Geoms, SPHERE
 # ---- shared morphology parameters (oracle imports this dict) ------------
 WALKER_P = {
     "M": 10.0,          # hip point mass [kg]
-    "beta": 0.001,      # foot point mass = beta * M   (Garcia: -> 0)
+    "beta": 0.05,       # foot point mass = beta * M
     "l": 0.5,           # leg length [m]
     "r_foot": 1e-3,     # foot sphere radius [m]
-    "I_hip": 1.0e-4,    # hip rotational inertia regularizer [kg m^2]
+    "I_hip": 1.0e-3,    # hip rotational inertia regularizer [kg m^2]
 }
+# NOTE on beta: Garcia's asymptotics are for beta -> 0; the TWIN keeps a
+# finite foot mass because the shared contact law (k=2.5e4, b=400) is
+# only explicitly stable at dt=2e-4 when the foot mass carries enough
+# inertia (m_foot/b >> dt).  beta=0.05 (m_foot=0.5 kg) satisfies this
+# with factor ~6 margin.  The oracle evaluates the SAME beta, so the
+# twin-vs-oracle comparison remains morphology-exact; external anchoring
+# to Garcia runs through the O(beta) acceleration check instead.
 
 
 def make_walker(params=None):
@@ -126,7 +133,8 @@ def build_geoms_simple(gspec, device="cpu", dtype=torch.float64) -> Geoms:
         dtype=torch.long)
     radius = torch.tensor([g["r"] for g in gspec], dtype=dtype)
     half_len = torch.tensor([g.get("hl", 0.0) for g in gspec], dtype=dtype)
-    collide_ground = torch.tensor([bool(g.get("ground", True))])
+    collide_ground = torch.tensor(
+        [bool(gg.get("ground", True)) for gg in gspec])
     return Geoms(body=body, local_p=local_p, local_R=local_R, gtype=gtype,
                  radius=radius, half_len=half_len,
                  collide_ground=collide_ground.expand(len(gspec)),

@@ -61,12 +61,43 @@ differences) with QR-reorthonormalized Benettin accumulation.
 | Differentiable spectrum dλ/dc | autodiff −0.174966 vs central-FD −0.174979 |
 
 Implementation notes (negative results worth remembering):
-* Cotangent propagation `W ← Jᵀ W` with LQ filtering computes *adjoint*
+* Cotangent propagation `W ← JᵀW` with LQ filtering computes *adjoint*
   exponents — NOT the Lyapunov spectrum for non-normal maps (measured
   σ_max(J)=1.11 → σ_max(J⁵⁰)=2.45 despite ρ(J)<1: transient growth).
 * Reverse-mode through `torch.func.jvp`/`jacrev` produces NaN grads;
   `lyapunov_spectrum_diff` instead builds each J column-by-column with
   plain `autograd.grad(..., create_graph=True)` so dλ/dθ flows exactly.
+
+### Independent compass-walker oracle (`scripts/walker_oracle.py`) [Q1c]
+
+A third, fully independent implementation of passive-dynamic-walking
+physics: sympy-derived Euler–Lagrange flow + Newtonian 8×8 impulse solve
+for plastic heelstrike (old pin releases; rods transmit axial impulses
+only).  Shares morphology parameters with the DiffSim twin via
+`diffsim.walker.WALKER_P`; slope realized as tilted gravity (Galilean
+equivalence — zero collision-code changes).
+
+| Anchor | Result |
+|---|---|
+| Acceleration field vs published Garcia eqs (1)–(2), O(β) map | err 8.9e-4 @ β=1e-4 → 8.9e-6 @ β=1e-6 (**exact linear scaling**, ratio 0.010 vs expected 0.01) |
+| Flow energy conservation | drift < 1.7e-11 over 3000 RK4 steps |
+| Impact: angular momentum about new pivot | conserved to machine precision (−2.2827481800e+00 both sides) |
+| Impact: kinetic energy | ratio post/pre = 0.834 (strictly dissipative, plastic) |
+| Period-one FP @ γ=0.009 vs mapped Table-1 asymptotics | θ*, ω* match to 1.9e-4 / 4.3e-4; ρ=0.58 attracting |
+| Stride closure from mapped FP | closes at τ=0.8935 s (=3.957 dimensionless vs paper 3.88) |
+
+Documented subtleties (each caught by a physical check):
+1. Garcia's rates are DIMENSIONLESS (τ=t√(g/l)); seeding without
+   rescaling velocity lands inside the inverted-pendulum potential well.
+2. Coordinate map is θ_G = −θ_world (their stance angle decreases);
+   verified numerically, not by convention.
+3. β→0 is a singular perturbation: det M→0, swing-rate coordinate is
+   slaved differently than at finite β (d₂* not comparable across the
+   limit; θ*, ω*, τ, multipliers are).
+4. Rigid rod constraint: endpoint relative velocity ⊥ rod — written
+   along the tangent once, which silently turned legs into prismatic
+   joints (energy-increasing impacts; caught by L-conservation check).
+
 
 ### Gradient fidelity horizon sweep
 
