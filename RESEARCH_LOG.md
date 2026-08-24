@@ -38,37 +38,45 @@ simplest proofs first:
 - `tests/test_walker_oracle.py` — 5 tests, ALL PASS (~96 s).
 - Full suite: `python -m pytest tests/ -x -q` (~28 min).
 
-## WHERE I AM RIGHT NOW (session 3, update 4)
+## SESSION 3 FINAL STATE (wrap-up)
 
-### Negative result now well-supported (twin walking)
-Across TRUE slopes gamma in {0.009..0.028}, k in [2e4, 4e5], b in
-[60, 2500], mu in {0.9, 3}, point feet r=1mm, several hundred batched
-ICs: NO passive walking orbit. Attractors = falls + two-foot rocking-
-in-place (alternating micro-contacts, zero advance). Energy arithmetic:
-compliant strike+drag losses ~ per-strike 0.1 J vs total slope budget
-0.34 J/stride at gamma=0.009 -> any extra loss kills the marginal rigid
-balance. Data: benchmarks/twin_attractor_scan.json,
-twin_kb_scan{,_underdamped,_steep}.json.
+### Done & pushed
+1. Garcia oracle-A full bifurcation diagram + cascade refinement
+   (benchmarks/garcia_oracle.json, garcia_cascade_refine.json):
+   period-1 -> 2 (0.015) -> 4 (0.0176) -> 8 (0.0178) -> chaos (0.018)
+   -> falls (>=0.019). Matches published structure at every stage.
+2. Walker oracle-B (sympy+Newtonian impulse) validated: O(beta)
+   acceleration anchor, exact impact momentum conservation, FP matches
+   Table-1, stride closure. tests/test_walker_oracle.py 5/5 PASS.
+3. Q2a gradient-transition diagnostics: no grad spikes at contact
+   events (norm ratio 0.99); cosine shift -0.07 -> -0.23.
+4. Twin negative result (thorough): NO compliant point-foot passive
+   walking across gamma in [0.009,0.028], k in [2e4,4e5], b in [60,
+   2500], mu in {0.9,3}; attractors = falls + rocking-in-place.
+   Energy budget arithmetic explains it (strike+drag losses vs slope
+   input). Data in benchmarks/twin_*.json.
+5. Q5 x walker: hybrid-map Lyapunov spectra via FD-Benettin through
+   sympy flow + Newtonian impact; lambda_1 cross-validated against
+   independent FD multipliers at two betas (-1.216 vs -1.2248 @beta=0.02;
+   -0.615 => rho=0.583 matching beta=0.001's 0.58). No saltation
+   correction needed, extending the bouncing-ball finding to
+   multi-DOF hybrid locomotion. benchmarks/walker_lyapunov.json.
 
-Escape axes not yet exhausted: arc feet (r>=25mm, needs oracle rolling
-rework), actuation (becomes Q2 task), even stiffer contact scaling.
+### Still running (background; check ps aux)
+- feig.py bisection of cascade onsets (hours): /tmp/opencode/feig.log
 
-### Q5 x walker: hybrid-map Lyapunov spectra WORKING
-scripts/walker_lyapunov.py: FD-Benettin through the validated sympy
-flow + Newtonian impact map, 3-dim section. First result
-(gamma=0.009, beta=0.02): lam = [-1.216, -1.235, -21.82] /s,
-t_stride=0.875 s. All-negative (attracting) as required; third
-exponent = fast light-foot slaving. TODO: cross-check lambda_1 ==
-ln(rho)/T_stride with FD multipliers at MATCHED (gamma,beta).
-
-### Feigenbaum bisection running (slow: hours)
-/tmp/opencode/feig.log — bisecting onset slopes of 2x/4x/8x windows for
-delta estimate. Do not kill; results append to log only.
-
-### kb scans status
-All configs so far: no walking. Underdamped corners done; steep slopes
-done. Remaining untested: k>=1e6 with proportional damping (dt<=2e-5,
-expensive).
+### Next session priorities
+1. Feigenbaum delta from bisection results when done; compare to
+   published accumulation 5.9/5.2/4.6.
+2. Twin escape axes: arc feet r>=25mm (needs oracle rolling-contact
+   rework), OR actuated walking (bridges directly to Q2 training),
+   OR k>=1e6 with proportional damping (dt<=2e-5, expensive).
+3. If arc feet adopted: extend oracle-B with rolling stance kinematics
+   before any twin comparison.
+4. Q2 SHAC locomotion attempt can proceed on a slightly-actuated twin
+   (small hip torque budget) even without passive orbit — actually
+   PREFERRED next step: turns the negative result into the Q2
+   experiment design ("how much actuation restores walking?").
 
 ### CRITICAL BUG FIXED (earlier this session): degrees/radians slope
 `walker.slope_gravity()` took DEGREES; every twin script passed RADIANS

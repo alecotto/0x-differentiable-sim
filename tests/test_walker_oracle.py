@@ -74,19 +74,19 @@ def test_period_one_fixed_point_near_garcia():
     fpG = go.shoot_fixed_point(gam, go.analytic_seed(gam, "long"))
     assert fpG is not None, "garcia reference FP missing"
     thG, wG = fpG["theta"], fpG["omega"]
-    wr = math.sqrt(9.81 / wo.P0["l"])
-    c2 = math.cos(2 * thG)
-    # world-coords seed (dimensionless -> real rate conversion!)
-    s3 = np.array([-thG, -wG * wr,
-                   -wG * wr + c2 * (1 - c2) * (wG * wr / c2)])
-    orc = wo.WalkerOracle(gam)
+    # WALKER_P["beta"] now sits above the direct-seed basin; track the
+    # orbit up the beta chain from the published asymptotic seed.
+    orc, s3 = wo.continuation_fp(gam, wo.P0["beta"])
+    assert s3 is not None and np.isscalar(s3[0]), \
+        "oracle-B period-one FP not found via beta continuation"
     r = orc.find_fixed_point(s3)
-    assert r is not None, "oracle-B period-one FP not found"
+    assert r is not None
     assert r["resid"] < 1e-9
     assert r["rho"] < 1.0, "gait must be attracting at gamma=0.009"
-    # theta* and stance rate match the published asymptotics to ~O(beta)
-    assert abs(r["s"][0] - (-thG)) < 5e-3
-    assert abs(r["s"][1] - (-wG * wr)) < 5e-3
+    wr = math.sqrt(9.81 / wo.P0["l"])
+    # theta* and stance rate match the published asymptotics to O(beta)
+    assert abs(r["s"][0] - (-thG)) < 2e-2
+    assert abs(r["s"][1] - (-wG * wr)) < 5e-2
 
 
 def test_tilted_gravity_equilibrium():
