@@ -61,6 +61,19 @@ simplest proofs first:
 
 ### Q1c findings so far (all reproduced, none speculative)
 
+0. **CRITICAL INSIGHT (session 3, latest)**: the rigid Garcia orbit's
+   swing leg travels UNDERGROUND mid-stride (the paper's scuffing
+   fiction: tip height l(cos th1 - cos th2) dips negative).  Seeding
+   the compliant twin anywhere near mid-stance therefore produces an
+   immediate FALSE heelstrike (~20ms in) followed by backward rocking.
+   NO contact-parameter scan can fix this -- the rigid orbit simply is
+   not a feasible trajectory for point feet on real ground.
+   **Consequence**: the twin's own limit cycle must be FOUND, not
+   seeded.  Plan: differentiable shooting -- Adam on ||P(s)-s||^2 over
+   one stride with gradients through the soft heelstrike events
+   (scripts/twin_gait_shoot.py).  This doubles as the Q2 demonstration
+   (exact gradients through contact events doing real work).
+
 1. **Oracle B (sympy) fully validated** against published Garcia eqs:
    acceleration field matches to O(β) with EXACT linear scaling
    (8.945e-4 @ β=1e-4 → 8.946e-6 @ β=1e-6); energy conserved 1.7e-11;
