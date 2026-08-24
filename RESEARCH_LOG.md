@@ -38,6 +38,43 @@ simplest proofs first:
 - `tests/test_walker_oracle.py` — 5 tests, ALL PASS (~96 s).
 - Full suite: `python -m pytest tests/ -x -q` (~28 min).
 
+## SESSION 5 (feedback addendum: dcos proof + high-k walking)
+
+### BREAKTHROUGH: twin WALKS at k=1e6 (+0.53 m advance, swing clearance
+19.5 mm, falls after ~2 strides from mid-stance seed). At k=2.5e4:
+advance exactly 0.000 everywhere. The liftoff-failure mechanism WAS
+penetration depth (delta_pen = mg/(n k)): at 1.96 mm it exceeded the
+entire clearance budget; at 20 um the foot clears. Feedback §4 confirmed.
+=> negative result becomes BOUNDED: compliant point-foot passive walking
+requires k >~ mg/(n * h_clear) ~ 1e5-1e6 N/m for this machine.
+
+### Q3 collision now quantitative
+Walking needs k >~ 1e6. Gradient cleanliness constraints (static
+delta_pen >> eps_ramp needs k << mg/(n eps_ramp) ~ 5e5; dynamic
+Pi_ramp = eps_ramp/(vn dt) >> 1). Dense (k,dt) grid confirms Pi_ramp
+transition near 3: (2.5e5) 4.13->clean, 3.11->destroyed, 2.10->mild,
+1.59->moderate. Overlap question: at k=1e6, gate_ratio = sag/smooth =
+0.49 < 1 (knee-riding) -> gradients predicted degraded THERE; but finer
+dt raises Pi_ramp... fine-dt walking scans + matched dcos points running
+(benchmarks/twin_highk_fine_dt.json, q2a_dcos_dense.json).
+
+### Corrections applied (README)
+- eps-convergence reinterpreted: FINITE JUMP (||g_fd||*eps constant
+  ~3.2e-6, doubles per halving; cos saturates 0.976). Analytic magnitude
+  describes a ~6e-13 m knee boundary layer — numerical artifact of the
+  softplus knee, direction 97.6% retained. Explicit-vs-implicit control
+  stands (not integrator).
+- delta_1 = 5.35 +- 0.16 stated as 3.4-sigma gap vs published 5.9;
+  delta_2 discriminator launched (gamma_16 bisection,
+  benchmarks/garcia_feigenbaum_d2.json).
+
+### Groups status
+Pi_ramp = eps_ramp/(vn*dt) transition ~3 confirmed on dense axis.
+gate_ratio = sag/smooth adds third length scale (knee-riding when <1).
+v_n now logged per config (varies 0.12-1.21 across configs!).
+Next: computational collapse fit over all rows incl. products; touch-
+bifurcation analysis for FD>>analytic rows.
+
 ## SESSION 4 FINAL STATE (wrap-up)
 
 ### Headline results this session
