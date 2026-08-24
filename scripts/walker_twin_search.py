@@ -51,11 +51,11 @@ def leg_state(sim, q, w):
 
 
 def run_case(gamma, k, b, scales=(0.95, 1.0, 1.05, 1.15, 1.3),
-             T=2.6, dt=1e-4):
+             T=2.6, dt=1e-4, mu=3.0):
     orc, y_mid, _t, fp = wo.midstance_state(gamma)
     assert y_mid is not None, f"no oracle gait at gamma={gamma}"
     E = len(scales)
-    sim = build(gamma, k, b, dt=dt)
+    sim = build(gamma, k, b, mu=mu, dt=dt)
     q = torch.zeros(E, sim.art.m.q_dim, dtype=DT)
     w = torch.zeros(E, sim.art.m.v_dim, dtype=DT)
     fs = sim.art.m.q_free_start
