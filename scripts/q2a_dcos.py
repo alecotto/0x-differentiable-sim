@@ -200,10 +200,8 @@ def measure_config(gamma=0.009, k=2.5e4, b=400., mu=0.9, dt=1e-4,
     i_ev = find_event(sim, q0, w0)
     if i_ev is None:
         return {"error": "event not found"}
-    if i_ev < 3 * W:                    # keep windows clear of t=0
-        W = max(80, i_ev // 4)
-    if i_ev < 3 * W:
-        return {"error": f"event too early (i_ev={i_ev})"}
+    # windows need: A starts at i_ev-2W >= 0 and B starts >= 0
+    W = min(W, max(40, i_ev // 2 - 20))
 
     out = {"gamma": gamma, "k": k, "b": b, "mu": mu, "dt": dt,
            "beta": beta, "implicit": implicit, "i_event": int(i_ev),

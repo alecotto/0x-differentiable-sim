@@ -1,0 +1,20 @@
+{
+ "g0.009_beta0.001": {
+  "labels": {
+   "fall": 23,
+   "steps-then-fall": 21,
+   "shuffle": 4
+  },
+  "max_strikes": 10,
+  "best_advance": 0.0
+ },
+ "g0.013_beta0.001": {
+  "labels": {
+   "fall": 24,
+   "steps-then-fall": 20,
+   "shuffle": 4
+  },
+  "max_strikes": 10,
+  "best_advance": 0.0
+ }
+}

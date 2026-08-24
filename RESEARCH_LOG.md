@@ -38,6 +38,57 @@ simplest proofs first:
 - `tests/test_walker_oracle.py` — 5 tests, ALL PASS (~96 s).
 - Full suite: `python -m pytest tests/ -x -q` (~28 min).
 
+## SESSION 4 FINAL STATE (wrap-up)
+
+### Headline results this session
+1. **Implicit contact damping** shipped (flag-gated, commit 1c442cb):
+   frozen-coefficient (M+dt R^T B R) solve. Removes explicit-Euler
+   constraint dt << m_eff/b. Accuracy validated vs fine-explicit.
+2. **Feigenbaum delta_1 = 5.346** from matched-precision bisection
+   (<=1e-5 brackets, Poincare point-count criterion):
+   g2=0.014699, g4=0.017268, g8=0.017748. Published accumulation
+   5.9 -> 4.67. Garcia cascade now QUANTITATIVELY reproduced
+   (benchmarks/garcia_feigenbaum.json).
+3. **Energy-budget prediction REFUTED**: no walking at predicted
+   gamma=0.013 (or 0.009..0.028) at mu=0.9 post-fix. Refined mechanism:
+   post-strike liftoff failure (structural), not power margin.
+4. **beta=0.001 twin scans**: no walking in Garcia's own foot-mass
+   regime either — negative result now covers the published morphology.
+5. **Delta-cos sweep (Q2a proof) — first campaign complete, picture
+   revised twice**:
+   - Norm explosion at stiff/few-substep contact is REAL and PHYSICAL:
+     eps-convergence shows FD norms GROW toward the analytic value
+     (cos->0.976); the stride map's true Lipschitz constant detonates
+     (rebound-timing amplification). Explicit-vs-implicit control: no
+     difference.
+   - "Soft contact is safe" also FALSE in general: soft contact at
+     coarse dt explodes too (||g||=6e47 at 2.8 substeps/compression,
+     k=2.5e4, dt=1e-3).
+   - Pi1 = sqrt(m_eff/k)/dt alone does NOT collapse the data (matched-
+     Pi1 pair differs). Narrowing softplus ramp beta_soft at fixed
+     (k,dt) flips clean -> rotated: ramp-width group confirmed as a
+     second axis.
+   - Third mechanism observed: touch-timing bifurcation (event enters/
+     leaves perturbed windows) gives FD>>analytic with perfect floor —
+     needs v_n logging + window-edge analysis next session.
+   - Current best account: BOTH norm explosion AND direction rotation
+     are real, regime-dependent; transition governed jointly by contact
+     resolution and ramp width; strike speed not yet controlled.
+
+### Next session priorities (in order)
+1. Delta-cos: add strike-speed (v_n) logging; re-attempt collapse with
+   groups (Pi1, Pi_ramp, v_n); analyze touch-bifurcation rows
+   (FD>>analytic with clean floor). Decide final claim language.
+2. Minimum-actuation experiment on the twin ("how much hip torque
+   restores walking?") — now well-motivated by the liftoff-failure
+   finding; measure threshold as a number.
+3. Arc feet if (2)'s threshold is large.
+4. Q3 frontier table: the dcos stiffness axis already produces
+   fidelity-vs-stiffness points; combine with horizon data.
+
+### Background threads
+- feig2 DONE (results committed). No other jobs running.
+
 ## SESSION 4 (feedback-driven)
 
 ### Feedback review committed as: implicit damping (1c442cb), process fixes
