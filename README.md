@@ -98,6 +98,54 @@ Documented subtleties (each caught by a physical check):
    along the tangent once, which silently turned legs into prismatic
    joints (energy-increasing impacts; caught by L-conservation check).
 
+### Garcia bifurcation diagram reproduced end-to-end [Q1 anchor]
+
+`benchmarks/garcia_oracle.json` + `garcia_cascade_refine.json`:
+
+| γ | attractor | published anchor |
+|---|---|---|
+| ≤0.013 | stable period-1 (double multiplier 0.57→0.63) | stable for γ<0.0151 ✓ |
+| 0.014 | multiplier split 0.773/0.406 | — |
+| 0.0145 | largest \|μ\|=0.918 → flip imminent | limping near 0.017 ✓ |
+| 0.015–0.017 | **period 2** (two-point Poincaré) | limping/cascade region ✓ |
+| 0.0176 | **period 4** | cascade ✓ |
+| 0.0178 | **period 8** | Feigenbaum accumulation ✓ |
+| 0.018 | **chaotic** (spread 0.023) | cascade complete ~0.019 ✓ |
+| ≥0.019 | falls | walker falls above cascade ✓ |
+
+Onset-slope bisection for Feigenbaum-ratio estimation running; structure
+already matches the published diagram qualitatively at every stage.
+
+### Compliant twin (DiffSim): current empirical status
+
+At default humanoid contact parameters and point feet (k=2.5e4 N/m,
+b=400 Ns/m, μ=3, foot mass 0.02M, slopes 0.009–0.015 rad true-tilted
+gravity), an extensive scan (~200 ICs/slope × multiple (k,b) windows
+including underdamped b=60 and stiff k≤4e5) finds:
+
+* **No passive walking limit cycle.** Attractors are: falls within
+  ~1–2 steps (majority), and a two-foot rocking-in-place equilibrium
+  (legs ±0.11 rad, both feet penetrated ~2 mm, alternating
+  micro-contacts with zero net advance).
+* First heelstrike from oracle-mid-stance seeds is clean and correctly
+  timed; failure occurs at LOAD TRANSFER: the trailing foot drags
+  through the compliant unloading window, dissipating energy on the
+  order of the entire per-stride slope input (mgΔh ≈ 0.34 J vs
+  ∫b·vₙ²dt ≈ 0.1 J *per strike window*).
+* Energy arithmetic explains the pattern: the rigid gait's impact loss
+  (KE ratio 0.83/stride) is exactly balanced by slope input; ANY
+  additional compliant-contact dissipation pushes the machine below
+  walking sustain. Consistent with every scanned configuration.
+* Historical caveat: all scans before commit 1983c71 ran at effective
+  slope 9e-5 rad (degrees/radians bug) — post-fix scans only above.
+
+Interpretation for the science questions: reproducing rigid-limit
+hybrid locomotion inside a soft-contact engine may REQUIRE either arc
+feet (rolling toe-off restores clearance + removes drag), stiffer-than-
+humanoid contact scaling, or slight actuation — quantifying which is
+precisely the Q3 frontier. This negative result is measured, not
+assumed; the search continues along those three axes.
+
 
 ### Gradient fidelity horizon sweep
 
