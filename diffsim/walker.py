@@ -38,18 +38,19 @@ from .collision import Geoms, SPHERE
 # ---- shared morphology parameters (oracle imports this dict) ------------
 WALKER_P = {
     "M": 10.0,          # hip point mass [kg]
-    "beta": 0.05,       # foot point mass = beta * M
+    "beta": 0.02,       # foot point mass = beta * M
     "l": 0.5,           # leg length [m]
     "r_foot": 1e-3,     # foot sphere radius [m]
     "I_hip": 1.0e-3,    # hip rotational inertia regularizer [kg m^2]
 }
 # NOTE on beta: Garcia's asymptotics are for beta -> 0; the TWIN keeps a
 # finite foot mass because the shared contact law (k=2.5e4, b=400) is
-# only explicitly stable at dt=2e-4 when the foot mass carries enough
-# inertia (m_foot/b >> dt).  beta=0.05 (m_foot=0.5 kg) satisfies this
-# with factor ~6 margin.  The oracle evaluates the SAME beta, so the
-# twin-vs-oracle comparison remains morphology-exact; external anchoring
-# to Garcia runs through the O(beta) acceleration check instead.
+# only explicitly stable when m_foot/b >> dt (dt=5e-5 needs m_foot/b
+# >= ~2.5e-4 kg s).  Measured stability boundary of the ORBIT itself:
+# at gamma=0.012 the period-one FP destabilizes between beta=0.02
+# (rho=0.58) and beta=0.035 (rho=2.18), absent at beta=0.05 -- so
+# beta=0.02 sits in the last both-stable window.  Twin and oracle share
+# WALKER_P; external anchoring runs through the O(beta) accel check.
 
 
 def make_walker(params=None):
