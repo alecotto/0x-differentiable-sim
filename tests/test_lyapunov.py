@@ -112,7 +112,11 @@ def test_chaotic_regime_positive_lambda():
                                  dt_substep=dt, steps=4000, renorm=20,
                                  delta0=1e-9)
     print(f"  chaotic lambda_1 = {lam:+.4f} /s")
-    assert lam > 0.1
+    # FINITE-TIME estimate at dt=5e-3 (README dt table: converged value
+    # at this dt is ~+0.047; 4000 steps = 20 s = <2 e-foldings, so the
+    # estimator here only establishes the SIGN robustly).  Assert sign
+    # and a conservative finite-time floor, NOT the converged value.
+    assert lam > 0.02
 
     # independent naive divergence slope (same dt!)
     y1 = x1.clone()

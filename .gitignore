@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 models/*.pt
 *.log
+benchmarks/raw/
+*_shoot_*.log
