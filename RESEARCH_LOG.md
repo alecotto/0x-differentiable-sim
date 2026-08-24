@@ -75,12 +75,22 @@ gamma=0.009/0.013 both fail at k<=4e5. beta=0.001 fails everywhere.
 => passive walking orbit still NOT found at any stiffness; k=1e6 gets
 closest (one stride). Next lever per feedback: minimum-actuation.
 
-### Running/unfinished
-- feig3 gamma_16 bisection: bracket [0.0178819,0.0178898], period-16
-  confirmed at 0.0178858-ish; delta_2 computable when converged
-  (benchmarks/garcia_feigenbaum_d2.json on completion).
-- highk_fine scan: remaining rows (k=1e6 dt=1e-5, k=2.5e6 dt=1e-5,
-  gamma=0.013 series).
+### SESSION 5 LAST RESULTS (post-wrap additions)
+1. **delta_2 = 3.546** (gamma_16 = 0.0178834 +-6e-7). Sequence
+   delta_1=5.35 -> delta_2=3.55 does NOT converge from above ->
+   per pre-stated criterion this INDICTS THE ONSET CLASSIFIER
+   (Poincare point-count near chaos misclassifies narrow period-16
+   windows; tol/tail insufficient). Do NOT quote delta values until
+   criterion fixed (candidate fix: multiplier-crossing criterion via
+   spectral radius of the section map, not point counting).
+   benchmarks/garcia_feigenbaum_d2.json has full trajectory.
+2. Fine-dt walking scans: k=1e6 random-ICs fail at dt in {1,2}e-5 too
+   (basin narrow; only oracle-mid-stance seed enters it).
+3. Pi_ramp second exception: (k=2.5e4, dt=6e-4, vn=0.109):
+   Pi_ramp=1.53<2.5 but CLEAN. Both exceptions share SLOW strikes
+   (vn<=0.12) -> hypothesis: jump size Delta scales with vn, so slow
+   strikes cost less to resolve; collapse variable likely
+   Pi_ramp * f(vn) or Delta(vn)/(eps*something). Next session.
 
 ### Next session priorities
 1. delta_2 verdict when feig3 lands (converging-to-4.669 check).
