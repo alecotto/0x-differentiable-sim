@@ -57,15 +57,15 @@ def _steps(sim, dt):
     return f
 
 
-def init_state(sim, th):
-    """Canonical mirror pose: stance leg a at angle th (th<0 = behind
-    pivot), swing leg b mirrored; stance tip resting on the ground."""
+def init_state(sim, th_a, th_b, delta):
+    """Start-of-stance pose with COMPLIANT offsets: rear foot pressed in
+    by penetration delta, front foot starting clear."""
     q = torch.zeros(1, sim.art.m.q_dim, dtype=torch.float64)
     w = torch.zeros(1, sim.art.m.v_dim, dtype=torch.float64)
     fs = sim.art.m.q_free_start
     q[0, fs] = 1.0
     l, r = WALKER_P["l"], WALKER_P["r_foot"]
-    q[0, fs + 6] = l * math.cos(float(th)) + r
+    q[0, fs + 6] = l * math.cos(float(th_a)) + r - float(delta)
     return q, w
 
 
@@ -89,9 +89,9 @@ def main():
     ap.add_argument("--lr", type=float, default=5e-3)
     ap.add_argument("--N", type=int, default=9000, help="horizon steps")
     ap.add_argument("--dt", type=float, default=1e-4)
-    ap.add_argument("--seed", type=float, nargs=3,
-                    default=[-0.15, 0.75, 0.35],
-                    help="initial (th, om_a, om_b)")
+    ap.add_argument("--seed", type=float, nargs=4,
+                    default=[-0.19, 0.16, 0.85, -0.30],
+                    help="initial (th_a, th_b, om_a, om_b)")
     ap.add_argument("--k", type=float, default=2.5e4)
     ap.add_argument("--b", type=float, default=400.)
     ap.add_argument("--mu", type=float, default=3.0)
@@ -100,19 +100,18 @@ def main():
     args = ap.parse_args()
 
     sim = build(args.gamma, args.k, args.b, args.mu, args.dt)
-    x = torch.nn.Parameter(torch.tensor(args.seed))
+    x = torch.nn.Parameter(torch.tensor(args.seed))   # (th_a, th_b, om_a, om_b)
     opt = torch.optim.Adam([x], lr=args.lr)
     history = []
     best = (float("inf"), None)
+    delta = WALKER_P["M"] * 9.81 / args.k     # static sag of loaded foot
     for it in range(args.iters):
-        th, om_a, om_b = x[0], x[1], x[2]
-        q0, w0 = init_state(sim, th)
-        q0 = q0.requires_grad_(True)
-        w0 = w0.requires_grad_(True)
-        # re-inject parameters into the state tensors
+        th_a, th_b, om_a, om_b = x[0], x[1], x[2], x[3]
+        q0, w0 = init_state(sim, th_a, th_b, delta)
+        # re-inject parameters so the graph starts at the leaves
         q0 = torch.cat([q0[:, :sim.art._qs[1]],
-                        th.reshape(1, 1),
-                        (-th).reshape(1, 1)], dim=1).requires_grad_(True)
+                        th_a.reshape(1, 1),
+                        th_b.reshape(1, 1)], dim=1).requires_grad_(True)
         w0 = torch.cat([w0[:, :sim.art._vs[1]],
                         om_a.reshape(1, 1),
                         om_b.reshape(1, 1)], dim=1).requires_grad_(True)
@@ -122,7 +121,9 @@ def main():
         th_b_N = qN[:, sim.art._qs[2]][0]
         om_a_N = wN[:, sim.art._vs[1]][0]
         om_b_N = wN[:, sim.art._vs[2]][0]
-        loss = ((th_a_N + th) ** 2 + (th_b_N - th) ** 2
+        # period-1 condition: legs exchange roles componentwise
+        # (validated oracle relabel map: y' = [th2, vp1, th1, vp0])
+        loss = ((th_a_N - th_b) ** 2 + (th_b_N - th_a) ** 2
                 + (om_a_N - om_b) ** 2 * 0.05
                 + (om_b_N - om_a) ** 2 * 0.05)
         opt.zero_grad()
