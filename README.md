@@ -14,22 +14,29 @@ environments `E` rides the leading dimension of every tensor.
 All results below were produced by code at the current commit, verified by
 aggressive audit under perturbed initial conditions.
 
-### Gradient pathology is conditioning and direction — not magnitude
+### Gradient pathology is conditioning and direction — not magnitude?
 
-Three independent measurements in this repo converge on a claim that
-inverts the field's default assumption ("gradients explode at contact"):
+**Preliminary (n=1 configuration).** On push-recovery at `k=2.5e4, b=400,
+μ=3`, contact transitions leave gradient norm essentially unchanged
+(ratio 0.99) while rotating gradient direction (cosine −0.07 → −0.23).
+Whether this generalises across stiffness, impact velocity, and timestep
+is under investigation via a Δcos scaling sweep (dimensionless groups
+Π₁ = τ_contact/dt etc.) with oracle-B's rigid hybrid map as the
+saltation-corrected control. Not yet a finding.
+
+Supporting context from earlier measurements (independent, but not part
+of the same experiment):
 
 1. Non-normal transient growth: σ_max(J) = 1.11 → σ_max(J⁵⁰) = 2.45 in an
    asymptotically *stable* system (ρ(J) < 1).
 2. Standing mode: λ = −2.87 (strongly contracting), yet finite-horizon
    gradient direction remains the sensitive quantity.
-3. Contact transitions (push-recovery humanoid): gradient **norm** at
-   events = 0.99× within-phase norm, while gradient **direction** rotates
-   (cos −0.07 → −0.23 across events).
 
-Magnitude is benign; conditioning and rotation are the pathology. Any
-optimizer design for contact-rich differentiable simulation should be
-built around that.
+If the directional-rotation effect proves general, half the standard
+mitigation toolkit (clipping, shorter horizons) targets the wrong failure
+mode — norm explosion — while direction rotation is immune to both.
+That implication motivates the sweep; it is not established by the n=1
+measurement above.
 
 ### Physics correctness
 
