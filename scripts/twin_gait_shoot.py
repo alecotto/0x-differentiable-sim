@@ -69,17 +69,24 @@ def init_state(sim, th_a, th_b, delta):
     return q, w
 
 
-def rollout(sim, q, w, N, dt, chunk=200):
+def rollout(sim, q, w, N, dt, chunk=200, n_ckpt=8):
     """N differentiable steps with per-chunk checkpointing so the BPTT
-    graph stays bounded (backward recomputes each chunk once)."""
+    graph stays bounded (backward recomputes each chunk once).
+    Returns (q_N, w_N, [ckpt states evenly spaced])."""
     f = _steps(sim, dt)
-    n_chunks, rem = divmod(N, chunk)
-    for _ in range(n_chunks):
-        q, w = torch.utils.checkpoint.checkpoint(f, q, w,
-                                                 use_reentrant=False)
-    for _ in range(rem):
-        q, w = f(q, w)
-    return q, w
+    ckpts = []
+    stride = max(1, N // n_ckpt)
+    done = 0
+    while done < N:
+        k = min(chunk, N - done)
+        if k == stride and len(ckpts) < n_ckpt:
+            q, w = torch.utils.checkpoint.checkpoint(f, q, w,
+                                                     use_reentrant=False)
+            ckpts.append((q, w))
+        else:
+            q, w = f(q, w)
+        done += k
+    return q, w, ckpts
 
 
 def main():
@@ -116,7 +123,7 @@ def main():
                         om_a.reshape(1, 1),
                         om_b.reshape(1, 1)], dim=1).requires_grad_(True)
 
-        qN, wN = rollout(sim, q0, w0, args.N, args.dt)
+        qN, wN, ckpts = rollout(sim, q0, w0, args.N, args.dt)
         th_a_N = qN[:, sim.art._qs[1]][0]
         th_b_N = qN[:, sim.art._qs[2]][0]
         om_a_N = wN[:, sim.art._vs[1]][0]
@@ -126,6 +133,18 @@ def main():
         loss = ((th_a_N - th_b) ** 2 + (th_b_N - th_a) ** 2
                 + (om_a_N - om_b) ** 2 * 0.05
                 + (om_b_N - om_a) ** 2 * 0.05)
+        # anti-tumble: keep leg angles in the sane range along the whole
+        # trajectory and require real forward advance of the hip
+        for qc, wc in ckpts:
+            ta = qc[:, sim.art._qs[1]][0]
+            tb = qc[:, sim.art._qs[2]][0]
+            loss = loss + 2.0 * ((torch.relu(ta.abs() - 0.5) ** 2)
+                                 + torch.relu(tb.abs() - 0.5) ** 2)
+        x0_ = q0[:, sim.art.m.q_free_start + 3][0]
+        xN_ = qN[:, sim.art.m.q_free_start + 3][0]
+        advance = 2.0 * WALKER_P["l"] * math.sin(max(abs(float(th_a)),
+                                                     abs(float(th_b))))
+        loss = loss + 4.0 * torch.relu(advance - (xN_ - x0_)) ** 2
         opt.zero_grad()
         loss.backward()
         gnorm = torch.nn.utils.clip_grad_norm_([x], 5.0)

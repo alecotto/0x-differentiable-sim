@@ -38,7 +38,55 @@ simplest proofs first:
 - `tests/test_walker_oracle.py` — 5 tests, ALL PASS (~96 s).
 - Full suite: `python -m pytest tests/ -x -q` (~28 min).
 
-## WHERE I AM RIGHT NOW (session 3)
+## WHERE I AM RIGHT NOW (session 3, update 2)
+
+### COMPLETED: Garcia oracle-A bifurcation sweep (Q1 external anchor)
+`benchmarks/garcia_oracle.json` — full diagram:
+- stable period-1 through γ=0.013; double multiplier splits at 0.014
+  (0.773/0.406), largest reaches +0.918 at 0.0145 → flip imminent;
+- attractors: period-1 @0.010, period-2 @0.015–0.017, CHAOS @0.018,
+  falls @≥0.019. Matches published: limping ~0.017, cascade done by
+  ~0.019. Cascade refinement (period-4 hunt for Feigenbaum ratio) in
+  background log /tmp/opencode/cascade_refine.log.
+
+### Walker twin gait shooting (the active front)
+First shooting runs converged to a DEGENERATE tumble solution (legs lock
+parallel, whole machine tips like a compass needle — periodicity alone
+doesn't exclude it). Added anti-tumble penalties: leg-angle range
+(|θ|≤0.5 sampled along trajectory) + forward-advance requirement.
+Currently running 3 gammas {0.009,0.013,0.017} × horizons
+{7000,8000,9000} steps @ dt=1e-4, logs /tmp/opencode/shootg_*.log.
+
+Key parameterization facts (do not regress):
+- periodicity = COMPONENTWISE SWAP (θa_N=θb₀ etc.), no negation — the
+  validated oracle relabel map is a plain component swap;
+- start pose must be NON-mirror (exact mirror ⇒ both feet touching ⇒
+  braced four-bar, angles freeze);
+- hip z starts at l·cos(θa)+r−δ with δ=mg/k sag;
+- one-step grads healthy; long-horizon via checkpoint chunks of 200.
+
+### If all γ fail to find walking orbits
+Fallbacks in order: (1) multiple shooting (nodes every ~600 steps,
+closure via swap); (2) arc feet r=25mm (needs oracle rolling-contact
+rework — big); (3) accept negative result with thorough search evidence:
+"no compliant point-foot passive walking at humanoid-default contact law
+parameters" + characterize the shuffle/tumble attractors found instead.
+
+### Next steps (in order)
+
+1. Read shooter logs; if any run reaches loss <1e-3 with real advance,
+   verify by unrolled rollout (strikes + hip travel), then measure the
+   orbit's multipliers by FD and compare against oracle rigid value
+   (~0.58) — that closes Q1c's comparison loop.
+2. When cascade refinement lands: compute Feigenbaum-style ratio vs
+   published 5.9/5.2/4.6 anchors, append to benchmarks.
+3. Q2a instrument done (see benchmarks/q2a_grad_transitions*.json).
+   Locomotion-grade Q2 answer rides on the walker gait.
+4. Q5 extension can proceed on the ORACLE side without the twin:
+   Lyapunov spectrum of the rigid hybrid walk via tangent propagation
+   through flow+Newtonian-impact map (differentiable linear solves).
+
+## Previous findings (session 3, first block)
 
 ### Background jobs possibly still running (check with `ps aux | grep python`)
 
