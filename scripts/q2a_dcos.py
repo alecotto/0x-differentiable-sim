@@ -101,9 +101,11 @@ def max_penetration(sim, q0, w0, i_start, n):
 
 @torch.no_grad()
 def find_event(sim, q0, w0, max_steps=20000):
-    """Heelstrike substep: swing-sphere clearance descending through 0."""
+    """Heelstrike substep + strike speed v_n (clearance descent rate)."""
+    dt = sim.cfg.dt
     q, w = q0.clone(), w0.clone()
     armed = False
+    prev_cl = None
     for i in range(max_steps):
         with torch.no_grad():
             q, w = advance(sim, q, w, 1)
@@ -113,9 +115,10 @@ def find_event(sim, q0, w0, max_steps=20000):
         cl = float(tip[:, 2] - WALKER_P["r_foot"])
         if cl > 5e-4:
             armed = True
-        elif armed and cl <= 0.0:
-            return i
-    return None
+        elif armed and cl <= 0.0 and prev_cl is not None:
+            return i, (prev_cl - cl) / dt      # v_n > 0 descending
+        prev_cl = cl
+    return None, None
 
 
 POS_IDX = None   # set per-model: 5 position slots, 8 velocity slots
@@ -197,7 +200,7 @@ def measure_config(gamma=0.009, k=2.5e4, b=400., mu=0.9, dt=1e-4,
                    seed_state_fn=seed_state):
     sim = build(gamma, k, b, mu, dt, beta=beta, implicit=implicit)
     q0, w0 = seed_state(sim)
-    i_ev = find_event(sim, q0, w0)
+    i_ev, v_n = find_event(sim, q0, w0)
     if i_ev is None:
         return {"error": "event not found"}
     # windows need: A starts at i_ev-2W >= 0 and B starts >= 0
@@ -205,7 +208,7 @@ def measure_config(gamma=0.009, k=2.5e4, b=400., mu=0.9, dt=1e-4,
 
     out = {"gamma": gamma, "k": k, "b": b, "mu": mu, "dt": dt,
            "beta": beta, "implicit": implicit, "i_event": int(i_ev),
-           "W": W}
+           "v_n": float(v_n), "W": W}
     starts = {"A": i_ev - 2 * W, "B": i_ev - W // 2}
     for name, i0 in starts.items():
         q, w = advance(sim, q0.clone(), w0.clone(), i0)
@@ -228,7 +231,16 @@ def measure_config(gamma=0.009, k=2.5e4, b=400., mu=0.9, dt=1e-4,
     cc = sim.cfg.contact
     # Pi_ramp = delta_pen * beta_soft  (penetration vs softplus width;
     # >>1 = hard-ramp regime, <<1 = ramp-smoothed)
-    out["Pi_ramp"] = out["pen_max_B"] * cc.beta_soft
+    out["Pi_ramp_static"] = out["pen_max_B"] * cc.beta_soft
+    # DYNAMIC ramp-crossing group: substeps spent traversing the ramp
+    if v_n is not None and v_n > 1e-9:
+        out["Pi_ramp"] = (1.0 / cc.beta_soft) / (v_n * dt)
+    else:
+        out["Pi_ramp"] = float("nan")
+    out["Pi_static_res"] = out["pen_max_B"] * cc.beta_soft  # delta/eps_ramp
+    # gate group: static sag relative to ACTIVATION-GATE width 'smooth'
+    delta_sag = WALKER_P["M"] * 9.81 / (2.0 * k)
+    out["gate_ratio"] = delta_sag / cc.smooth
     return out
 
 
