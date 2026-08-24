@@ -178,20 +178,16 @@ predicted by the energy budget below; implicit-damping runs at foot
 masses near Garcia's β→0 limit (now unblocked by the implicit damper);
 k ≥ 1e6.
 
-**Energy-budget hypothesis (falsifiable form).** At the rigid fixed point
-the impact loss (KE ratio 0.83/stride) is balanced by slope input. The
-compliant strike+drag window adds fractional dissipation f ≈ 0.29
-(measured single-strike loss ∫b·vₙ²dt ≈ 0.1 J vs per-stride input
-mgΔh ≈ 0.34 J at γ=0.009). If extra dissipation merely *shifts* the
-orbit's slope (the rigid orbit is attracting with finite basin width),
-walking should appear near
-
-    γ_twin ≈ γ_rigid / (1 − f) ≈ 0.009 / 0.71 ≈ 0.013,
-
-and the required slope should rise linearly with f. Scanning that
-window at μ=0.9 (post-fix, implicit damping) is the cheapest
-discriminating experiment available; a walk there confirms the budget,
-its absence refutes the dissipation-shift story.
+**Energy-budget hypothesis: REFUTED (2026-08-24, session 4).** The
+falsifiable form predicted walking near γ ≈ 0.013 (= 0.009/(1−f), f≈0.29).
+Post-fix scan at μ=0.9 with implicit damping (E=48 ICs × γ∈{0.009…0.018})
+found no walking anywhere — `benchmarks/twin_prediction_scan.json`. The
+dissipation-shift story is wrong. Combined evidence now points at a
+structural blocker instead: seeds placed mid-swing complete one clean
+stride, but the new trailing foot never re-initiates swing after a strike
+(max observed clearance ~0.5 mm). The failure is liftoff geometry, not
+power margin — which is why arc feet (rolling toe-off) and the
+minimum-actuation measurement are the next two discriminators.
 
 
 ### Gradient fidelity horizon sweep
