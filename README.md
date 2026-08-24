@@ -49,18 +49,39 @@ Working synthesis (revised after the jump finding): the stiff-regime
 "explosion" is the analytic gradient differentiating a **numerical
 smoothing artifact** — the objective contains a finite jump created by
 the softplus knee, and BPTT honestly reports the knee's inverse width.
-Direction rotation at ~constant norm (soft regime) and jump-
-differentiation (stiff regime) are both real; neither is a true-Lipschitz
-property of contact mechanics. Working hypothesis for the collapse
-variable: the ramp must satisfy TWO constraints simultaneously —
+
+**Π_ramp collapse (preliminary, n=10 configs).** With strike speed vₙ now
+measured per event, the dynamic group
+
+    Π_ramp = ε_ramp / (vₙ · dt)     [substeps spent traversing the ramp]
+
+orders every post-fix measurement with a transition at **Π_ramp ≈ 2.5 ± 0.4**:
+
+| Π_ramp | cos_B | outcome |
+|---|---|---|
+| 8.44, 4.95, 2.61, 2.20 | 1.000 | analytic == FD |
+| 2.50 | 0.705 | norm explosion |
+| 1.28 | 0.657 | rotated |
+| 0.88, 0.26 | 0.00–0.66 | destroyed |
+
+(vₙ varies 0.12–1.21 across configurations — it is an emergent quantity of
+each gait/timing, which is why it must be measured, not assumed.) One
+coarse-dt row sits below threshold yet clean; its vₙ estimate spans a full
+400 µs substep and is unreliable. Two length-scale constraints bracket
+ε_ramp jointly:
 
     static:   δ_pen = mg/(n·k)  ≫  ε_ramp      (operate off the knee)
-    dynamic:  Π_ramp = ε_ramp/(vₙ·dt) ≫ 1       (several substeps across it)
+    dynamic:  ε_ramp / (vₙ·dt)  ≫  1            (several substeps across it)
 
-which bracket ε_ramp from opposite sides and yield a closed-form maximum
-usable stiffness k ≪ mg/(n·vₙ·dt). Δcos-vs-Π_ramp collapse test under
-way (vₙ logging being added); if it collapses near Π_ramp ≈ 1–3, that
-inequality is the practitioner-facing result.
+yielding a closed-form **maximum usable contact stiffness** for a
+differentiable simulator,
+
+    k ≪ mg / (n · vₙ · dt),
+
+with ε_ramp optimally near the geometric mean √(δ_pen · vₙ · dt).
+Practitioner rule: if your task's impact speeds and timestep put you below
+Π_ramp ≈ 3 at your chosen k, first-order gradients through events are
+untrustworthy regardless of integrator.
 
 ### Physics correctness
 

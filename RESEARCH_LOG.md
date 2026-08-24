@@ -38,7 +38,61 @@ simplest proofs first:
 - `tests/test_walker_oracle.py` — 5 tests, ALL PASS (~96 s).
 - Full suite: `python -m pytest tests/ -x -q` (~28 min).
 
-## SESSION 5 (feedback addendum: dcos proof + high-k walking)
+## SESSION 5 FINAL STATE (wrap-up)
+
+### Headline: HIGH-K WALKING SCAN + MECHANISM LOCALIZED
+1. k=1e6 twin completes ONE clean stride (+0.53m incl. slide-fall tail;
+   dt-converged to 4 decimals across 5e-5/2e-5) then stands 0.8 s in
+   double support, then slides/tumbles. NOT sustained walking — but the
+   stride proves liftoff CAN occur.
+2. Post-strike telemetry (natural strike state): new-swing rate
+   omega_a = +0.386 rad/s vs oracle rigid prediction +0.71 -> ONLY ~50%
+   SURVIVES the compliant strike window (old-foot impulse scrubs angular
+   momentum while it unloads). Surviving rate decays to ~0 in 135 ms;
+   backswing stalls at ~1 mm tip rise vs oracle 5 mm. Then double-
+   support stand. THIS is the Q1c blocker, now quantified.
+3. Open question flagged: whether even the FULL rigid rate would suffice
+   in the twin (gravity restoring vs inertia) — next-session diagnostic:
+   seed twin at oracle post-strike state via short-horizon matching
+   (avoid IC-mismatch trap: forcing FP rates into twin state space is
+   NOT dynamically consistent; must enter through the twin's own strike).
+
+### Delta-cos campaign status
+- Pi_ramp collapse: transition ~2.5+-0.4 orders ALL v_n-instrumented rows
+  (clean: 2.20-8.44; degraded: 0.26-2.50). One coarse-dt exception where
+  v_n itself is unreliable (400us substep).
+- Jump interpretation committed (finite jump Delta~6.4e-6; knee artifact;
+  direction 97.6% retained; magnitude = knee inverse width).
+- Design rule stated: k << mg/(n vn dt); optimal eps_ramp ~ sqrt(delta
+  _pen * vn * dt).
+- Dense grid + unified table: benchmarks/q2a_dcos_{dense,unified,...}.json
+- Third mechanism observed (touch-timing bifurcation: FD>>analytic with
+  clean floor) — needs window-edge analysis next session.
+
+### Walking-window edges measured so far
+k=4e5: no walk (any dt tested). k=1e6: one stride then stand.
+gamma=0.009/0.013 both fail at k<=4e5. beta=0.001 fails everywhere.
+=> passive walking orbit still NOT found at any stiffness; k=1e6 gets
+closest (one stride). Next lever per feedback: minimum-actuation.
+
+### Running/unfinished
+- feig3 gamma_16 bisection: bracket [0.0178819,0.0178898], period-16
+  confirmed at 0.0178858-ish; delta_2 computable when converged
+  (benchmarks/garcia_feigenbaum_d2.json on completion).
+- highk_fine scan: remaining rows (k=1e6 dt=1e-5, k=2.5e6 dt=1e-5,
+  gamma=0.013 series).
+
+### Next session priorities
+1. delta_2 verdict when feig3 lands (converging-to-4.669 check).
+2. Strike-window impulse accounting: measure old-foot impulse during
+   compliant strike vs rigid zero-impulse assumption; test mu sweep at
+   high k (mu=0.3?) as scrubbing mitigation.
+3. Minimum-actuation experiment (hip torque budget restoring periodic
+   gait) — now sharply framed: does actuation compensate the scrubbed
+   backswing?
+4. Touch-bifurcation analysis for dcos third mechanism.
+
+## SESSION 5 mid-session notes (superseded where conflicting with FINAL above)
 
 ### BREAKTHROUGH: twin WALKS at k=1e6 (+0.53 m advance, swing clearance
 19.5 mm, falls after ~2 strides from mid-stance seed). At k=2.5e4:
