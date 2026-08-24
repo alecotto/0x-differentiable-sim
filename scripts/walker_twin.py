@@ -44,10 +44,10 @@ import walker_oracle as wo  # noqa: E402
 DT = torch.float64
 
 
-def build_twin(gamma_deg: float, k_ground=2.5e4, damping=400.0, mu=3.0,
+def build_twin(gamma: float, k_ground=2.5e4, damping=400.0, mu=3.0,
                dt=2e-4):
     model, gspec, feet, aux = make_walker()
-    model.gravity = aux["slope_gravity"](gamma_deg)
+    model.gravity = aux["slope_gravity"](gamma)
     cc = ContactConfig(k_ground=k_ground, damping=damping, mu=mu,
                        margin=0.0)
     sim = DiffSim(model, build_geoms_simple(gspec), SimConfig(dt=dt,

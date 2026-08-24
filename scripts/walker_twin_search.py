@@ -24,9 +24,9 @@ import walker_oracle as wo  # noqa: E402
 DT = torch.float64
 
 
-def build(gamma_deg, k, b, mu=3.0, dt=1e-4):
+def build(gamma, k, b, mu=3.0, dt=1e-4):
     model, gspec, feet, aux = make_walker()
-    model.gravity = aux["slope_gravity"](gamma_deg)
+    model.gravity = aux["slope_gravity"](gamma)
     cc = ContactConfig(k_ground=k, damping=b, mu=mu, margin=0.0)
     sim = DiffSim(model, build_geoms_simple(gspec),
                   SimConfig(dt=dt, n_substeps=1, contact=cc), dtype=DT)

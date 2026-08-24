@@ -114,10 +114,15 @@ def make_walker(params=None):
                           shape="sphere", r=r, hl=0.0, R=eye, ground=True))
     feet_geoms = [g["name"] for g in gspec]
 
-    def slope_gravity(gamma_deg: float):
-        """Return the gravity tuple for a downhill slope gamma (degrees)."""
-        gam = math.radians(gamma_deg)
-        return (9.81 * math.sin(gam), 0.0, -9.81 * math.cos(gam))
+    def slope_gravity(gamma):
+        """Gravity tuple for a downhill slope gamma IN RADIANS.
+
+        Walking down slope gamma == flat ground under tilted gravity
+        (Galilean equivalence).  Callers MUST pass radians -- an earlier
+        degrees/radians mismatch silently flattened every twin run to
+        gamma_eff ~ 1e-4 rad, where no passive walking exists.
+        """
+        return (9.81 * math.sin(gamma), 0.0, -9.81 * math.cos(gamma))
 
     aux = {"params": p, "slope_gravity": slope_gravity}
     return model, gspec, feet_geoms, aux

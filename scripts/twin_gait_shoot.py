@@ -37,9 +37,9 @@ from diffsim.walker import make_walker, build_geoms_simple, WALKER_P  # noqa
 from diffsim.sim import DiffSim, SimConfig, ContactConfig  # noqa
 
 
-def build(gamma_deg, k=2.5e4, b=400., mu=3.0, dt=1e-4):
+def build(gamma, k=2.5e4, b=400., mu=3.0, dt=1e-4):
     model, gspec, feet, aux = make_walker()
-    model.gravity = aux["slope_gravity"](gamma_deg)
+    model.gravity = aux["slope_gravity"](gamma)
     cc = ContactConfig(k_ground=k, damping=b, mu=mu, margin=0.0)
     sim = DiffSim(model, build_geoms_simple(gspec),
                   SimConfig(dt=dt, n_substeps=1, contact=cc),

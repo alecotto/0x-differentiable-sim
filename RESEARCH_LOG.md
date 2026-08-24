@@ -38,7 +38,25 @@ simplest proofs first:
 - `tests/test_walker_oracle.py` — 5 tests, ALL PASS (~96 s).
 - Full suite: `python -m pytest tests/ -x -q` (~28 min).
 
-## WHERE I AM RIGHT NOW (session 3, update 2)
+## WHERE I AM RIGHT NOW (session 3, update 3)
+
+### CRITICAL BUG FIXED: degrees/radians slope mismatch
+`walker.slope_gravity()` took DEGREES; every twin script passed RADIANS
+=> ALL prior twin simulations ran at gamma_eff = 9e-5 rad (flat!).
+Explains: no-walking everywhere, slope-independent attractor scans,
+braced double-support traps (flat ground has no downhill energy input).
+Fixed: slope_gravity now takes radians; call sites patched
+(scripts/walker_twin*.py, twin_gait_shoot.py).
+=> The (k,b) contact-parameter search MUST be redone at true slopes;
+the design space is OPEN again, not exhausted.
+
+### Current runs
+- walker_twin_scan.py (corrected gravity): scanning gamma {0.009,0.012,
+  0.015} x 64 random ICs, T=3s. First two slopes: no sustained walking
+  yet (steps-then-fall dominant) at DEFAULT contact params (k=2.5e4,
+  b=400, mu=3). Log /tmp/opencode/scan2.log.
+- cascade_refine (PID may be long-running): period-4 hunt near gamma
+  0.0172-0.0178 for Feigenbaum ratio.
 
 ### COMPLETED: Garcia oracle-A bifurcation sweep (Q1 external anchor)
 `benchmarks/garcia_oracle.json` — full diagram:
