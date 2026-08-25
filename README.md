@@ -257,23 +257,31 @@ dynamic undersampling.
 
 ### Compliant twin (DiffSim): current empirical status
 
-**Headline (bounded result).** Compliant point-foot passive walking
-requires the static penetration δ_pen = mg/(n·k) to drop below the
-swing-clearance budget — i.e. k ≳ mg/(n·h_clear) ≈ 1e5–1e6 N/m for this
-machine. At k = 4e5–1e6 N/m (implicit damping, μ=0.9, true slope), the
-twin achieves liftoff and completes **one stride** from an oracle-derived
-mid-stance seed: +0.53 m travel, 19–20 mm swing clearance, dt-converged
-to 4 decimals across dt ∈ {5e-5, 2e-5} (`scripts/twin_strike_mechanism.py`,
+**Headline (bounded result; regenerated 2026-08-25 with working implicit
+damping — all numbers reproduce under real contact damping).** Compliant
+point-foot passive walking requires the static penetration δ_pen =
+mg/(n·k) to drop below the swing-clearance budget — i.e. k ≳ mg/(n·h_clear)
+for this machine, empirically bracketed in **k ∈ (2.5e4, 4e5] N/m**:
+
+| k [N/m] | net travel | max swing lift | verdict |
+|---|---|---|---|
+| 2.5e4 | **−0.44 m (BACKWARD)** | 0.07 / 0.51 mm | buried: lifts < penetration |
+| 4e5 | +0.53 m | 2.4 / 19.2 mm | strides |
+| 1e6 | +0.53 m | 2.5 / 19.5 mm | strides |
+
+At k ≥ 4e5 the twin achieves liftoff and completes **one stride** from an
+oracle-derived mid-stance seed (+0.53 m, dt-converged to 4 decimals across
+dt ∈ {2e-5, 5e-5}; `scripts/twin_strike_mechanism.py`,
 `benchmarks/twin_strike_mechanism.json`). The stride does not repeat:
 after touchdown the machine stands in double support ~0.8 s, then slides
-into a fall. **No self-sustaining orbit found at any stiffness tested**
-(k ≤ 4e5: zero net advance at every dt; random ICs never enter the
-walking basin even at k=1e6 — only the oracle-derived seed does).
+into a fall. **No self-sustaining orbit found at any stiffness tested**;
+random ICs never enter the walking basin even at k=1e6 — only the
+oracle-derived seed does.
 
 Mechanism, quantified: across the compliant strike window the new swing
-leg retains only ~50% of the rigid-orbit backswing rate (+0.386 vs
-+0.71 rad/s) because the old foot scrubs angular momentum while it
-unloads; what survives decays to zero within 135 ms and the backswing
+leg retains only ~47% of the rigid-orbit backswing rate (+0.387 vs
++0.823 rad/s) because the old foot scrubs angular momentum while it
+unloads; what survives decays to zero within ~130 ms and the backswing
 stalls at ~1 mm tip rise vs the rigid orbit's 5 mm.
 
 **Coverage disclosure.** An earlier degrees/radians bug (`slope_gravity`
