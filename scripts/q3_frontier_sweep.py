@@ -119,12 +119,12 @@ def telemetry(sim, q, w, ms=200.):
             "overlap_ms": overlap_steps * dt * 1e3}
 
 
-def march_to_strike(sim, q, w, max_steps=60000, vn_min=0.05,
+def march_to_strike(sim, q, w, max_steps=60000, vn_min=0.0,
                     win=30):
-    """Real heelstrike: descending crossing whose APPROACH speed
-    (peak descent rate over the trailing `win` substeps) >= vn_min.
-    Crossing-instant speed underestimates badly at high k because the
-    softplus ramp decelerates the foot before z crosses zero."""
+    """Heelstrike = first armed descending crossing.  NOTE: passive
+    walkers land SOFTLY -- measured touchdown speeds are 0.01-0.4 m/s,
+    so no speed gate is applied; the peak approach rate over the
+    trailing window is still returned for Pi_ramp bookkeeping."""
     dt = sim.cfg.dt
     with torch.no_grad():
         armed = False
