@@ -70,7 +70,6 @@ def seed_mid(sim):
     return q, w
 
 
-@torch.no_grad()
 def advance(sim, q, w, n):
     dt = sim.cfg.dt
     for _ in range(n):
@@ -83,6 +82,8 @@ def advance(sim, q, w, n):
 def telemetry(sim, q, w, ms=200.):
     """Post-strike leg-a rate trace + overlap duration."""
     dt = sim.cfg.dt
+    ctx = torch.no_grad()
+    ctx.__enter__()
     n = int(ms * 1e-3 / dt)
     trace = []
     overlap_steps = 0
@@ -111,29 +112,43 @@ def telemetry(sim, q, w, ms=200.):
     bi = int(np.argmax(arr[:, 1]))
     tip_rise = WALKER_P["l"] * (
         math.cos(abs(float(arr[0, 1]))) - math.cos(arr[bi, 1])) * 1e3
+    ctx.__exit__(None, None, None)
     return {"peak_rate": om0, "decay_10pct_ms": tau,
             "stall_rad": float(arr[bi, 1]),
             "backswing_rise_mm": tip_rise,
             "overlap_ms": overlap_steps * dt * 1e3}
 
 
-def march_to_strike(sim, q, w, max_steps=60000):
+def march_to_strike(sim, q, w, max_steps=60000, vn_min=0.05,
+                    win=30):
+    """Real heelstrike: descending crossing whose APPROACH speed
+    (peak descent rate over the trailing `win` substeps) >= vn_min.
+    Crossing-instant speed underestimates badly at high k because the
+    softplus ramp decelerates the foot before z crosses zero."""
     dt = sim.cfg.dt
-    armed = False
-    prev = None
-    for i in range(max_steps):
-        R_w, p_w = sim.art.kinematics(q)
-        cen, _ = sim.art.geoms_world(q, sim.geoms, R_w, p_w)
-        cl = float(cen[:, sim.geoms.names.index("foot_b"), 2]
-                   - WALKER_P["r_foot"])
-        if cl > 5e-4:
-            armed = True
-        elif armed and cl <= 0.0 and prev is not None:
-            return i, (prev - cl) / dt
-        prev = cl
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+    with torch.no_grad():
+        armed = False
+        prev = None
+        rates = []
+        for i in range(max_steps):
+            R_w, p_w = sim.art.kinematics(q)
+            cen, _ = sim.art.geoms_world(q, sim.geoms, R_w, p_w)
+            cl = float(cen[:, sim.geoms.names.index("foot_b"), 2]
+                       - WALKER_P["r_foot"])
+            if prev is not None:
+                rates.append((prev - cl) / dt)
+                if len(rates) > win:
+                    rates.pop(0)
+            if cl > 5e-4:
+                armed = True
+            elif armed and cl <= 0.0 and prev is not None:
+                vn_peak = max(rates) if rates else 0.0
+                if vn_peak >= vn_min:
+                    return i, vn_peak
+            prev = cl
+            qdd = sim.forward_dynamics(q, w)
+            w = w + dt * qdd
+            q = sim.art.integrate(q, w, dt)
     return None, None
 
 
