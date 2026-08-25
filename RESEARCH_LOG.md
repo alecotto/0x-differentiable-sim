@@ -38,6 +38,25 @@ simplest proofs first:
 - `tests/test_walker_oracle.py` — 5 tests, ALL PASS (~96 s).
 - Full suite: `python -m pytest tests/ -x -q` (~28 min).
 
+## SESSION 6 (feedback round 2)
+
+### Passive walkers land SOFTLY — instrument implication
+Measured twin touchdown speeds: 0.009-0.4 m/s (the 19.5mm swing arc
+descends over ~270 ms). My vn_min speed gate for strike qualification was
+categorically wrong for this machine class and rejected REAL strikes.
+Removed. Consequence for the collapse analysis: quasi-static-landing
+machines always satisfy the DYNAMIC ramp constraint (eps_ramp/(vn*dt)
+huge when vn small)... yet explosions still occur at k>=2.5e5 => for this
+class the STATIC knee-position group governs gradient degradation:
+    delta_pen vs eps_ramp   and   delta_pen(smooth) vs smooth gate width.
+Pi_ramp remains relevant only for genuinely fast impacts (ballistic
+tasks). Design inequality simplifies for quasi-static landers:
+    k << mg/(n * eps_ramp).
+tol_drift test CONFIRMS point-count onsets are tolerance-dependent:
+at tol=1e-5 gamma_8 onset drifts to >=0.017779 (vs 0.017748 at 1e-6),
+classification disagreement visible across the bracket. Point-count
+delta values remain quarantined; multiplier-crossing criterion next.
+
 ## SESSION 5 FINAL STATE (wrap-up)
 
 ### Headline: HIGH-K WALKING SCAN + MECHANISM LOCALIZED
