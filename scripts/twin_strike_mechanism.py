@@ -101,9 +101,7 @@ def run_stride(sim, q, w, T=6.0):
     fell_t = None
     n = int(T / dt)
     for i in range(n):
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
         st = foot_state(sim, q, w)
         t = i * dt
         for lg in ("a", "b"):
@@ -136,9 +134,7 @@ def post_strike_telemetry(sim, q, w, ms=200.0):
     for i in range(n):
         st = foot_state(sim, q, w)
         trace.append((i * dt * 1e3, st["th_a"], st["om_a"]))
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
     return trace
 
 
@@ -154,9 +150,7 @@ def march_to_first_strike(sim, q, w, max_steps=40000):
         elif armed and cl <= 0.0 and prev is not None:
             return q, w, i, (prev - cl) / dt
         prev = cl
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
     return None, None, None, None
 
 

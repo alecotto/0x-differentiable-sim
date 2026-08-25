@@ -50,9 +50,7 @@ def build(gamma, k=2.5e4, b=400., mu=3.0, dt=1e-4):
 
 def _steps(sim, dt):
     def f(q, w):
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
         return q, w
     return f
 

@@ -244,14 +244,16 @@ class DiffSim:
                 self.clamp_stats["vn_cap_hits"] += cap_hits
                 vn_c = torch.clamp(-vn, max=2.0)               # cap approach speed
                 if collect_damping:
-                    # frozen-coefficient linearization of the normal damper:
-                    # F(vn) = b*act*softplus_pen(min(-vn,2),1e3);
-                    # dF/dvn = -b*act*sigmoid(1e3*min(-vn,2)) * (vn>-2)
-                    slope = -torch.sigmoid(1e3 * vn_c) \
+                    # frozen-coefficient implicit normal damper.  Force
+                    # along +n_hat is F = b_eff * (-vn) (opposes approach,
+                    # b_eff > 0); generalized resistance tau_d = -R^T B R qd.
+                    # Coefficients frozen at substep start -> semi-implicit
+                    # (M + dt R^T B R) qd+ = M qd*, unconditionally stable.
+                    b_eff = torch.sigmoid(1e3 * vn_c) \
                         * ((-vn < 2.0).to(q.dtype))
                     nd_R.append(self._point_normal_rows(
                         sub, p_body, self.ground_body_rep, n_hat))
-                    nd_b.append(gw * cc.damping * act * slope)
+                    nd_b.append(gw * cc.damping * act * b_eff)
                 else:
                     fn = fn + gw * cc.damping * act * softplus_pen(vn_c, 1e3)
                 vt = vb - vn.unsqueeze(-1) * n_hat
@@ -296,14 +298,14 @@ class DiffSim:
                 vn = (vrel * n_hat).sum(-1)
                 vn_c = torch.clamp(-vn, max=2.0)                # cap approach speed
                 if collect_damping:
-                    slope = -torch.sigmoid(1e3 * vn_c) \
+                    b_eff = torch.sigmoid(1e3 * vn_c) \
                         * ((-vn < 2.0).to(q.dtype))
                     R1 = self._point_normal_rows(sub, pc, self.pair_body_i,
                                                  n_hat)
                     R2 = self._point_normal_rows(sub, pc, self.pair_body_j,
                                                  n_hat)
                     nd_R.append(R1 - R2)      # relative normal velocity row
-                    nd_b.append(cc.damping * act * slope)
+                    nd_b.append(cc.damping * act * b_eff)
                 else:
                     fn = fn + cc.damping * act * softplus_pen(vn_c, 1e3)
                 vt = vrel - vn.unsqueeze(-1) * n_hat
@@ -410,6 +412,36 @@ class DiffSim:
     # stepping
     # ------------------------------------------------------------------ #
 
+    def _substep(self, q, qd, tau_ext, dt):
+        """One physics substep. Returns (q, qd, qdd, aux)."""
+        qdd, aux = self.forward_dynamics(q, qd, tau_ext, want_aux=True)
+        qd = qd + dt * qdd
+        implicit_nd = bool(getattr(self.cfg.contact, "implicit_damping",
+                                   False))
+        if implicit_nd and aux.get("nd_R") is not None:
+            R, bcoef = aux["nd_R"], aux["nd_b"]
+            M = aux["M"]
+            A = M + dt * torch.einsum("ekd,ek,ekf->edf", R, bcoef, R)
+            rhs2 = (M @ qd.unsqueeze(-1)).squeeze(-1)
+            qd = torch.linalg.solve(A, rhs2.unsqueeze(-1)).squeeze(-1)
+        if self.cfg.max_vel is not None:
+            nrm = qd.norm(dim=-1, keepdim=True)
+            hit = (nrm > self.cfg.max_vel)
+            self.clamp_stats["vel_clamp_hits"] += float(hit.sum())
+            qd = qd * torch.clamp(self.cfg.max_vel / (nrm + 1e-12), max=1.0)
+        q = self.art.integrate(q, qd, dt)
+        return q, qd, qdd, aux
+
+    def step_substep(self, q, qd, tau_ext=None):
+        """Advance ONE physics substep (semi-implicit Euler), applying the
+        implicit normal-contact damping correction when
+        cfg.contact.implicit_damping is set.
+
+        Public so that external rollout loops (event-driven scans etc.)
+        get exactly the same integrator semantics as step()."""
+        q, qd, _, _ = self._substep(q, qd, tau_ext, self.cfg.dt)
+        return q, qd
+
     def step(self, q, qd, tau_ext=None, train_mode: bool = False) -> StepResult:
         """Advance one control step (`n_substeps` physics substeps).
 
@@ -417,30 +449,13 @@ class DiffSim:
         be backpropagated through the whole rollout (BPTT / SHAC).  By
         default the rollout runs under no_grad for speed.
         """
-        dt = self.cfg.dt
-        implicit_nd = bool(getattr(self.cfg.contact, "implicit_damping",
-                                   False))
         ctx = torch.enable_grad() if train_mode else torch.no_grad()
         with ctx:
             qc, qdc = q, qd
             qdd, aux = None, None
             for _ in range(self.cfg.n_substeps):
-                qdd, aux = self.forward_dynamics(qc, qdc, tau_ext,
-                                                 want_aux=True)
-                qdc = qdc + dt * qdd
-                if implicit_nd and aux.get("nd_R") is not None:
-                    R, bcoef = aux["nd_R"], aux["nd_b"]
-                    M = aux["M"]
-                    A = M + dt * torch.einsum(
-                        "ekd,ek,ekf->edf", R, bcoef, R)
-                    rhs2 = (M @ qdc.unsqueeze(-1)).squeeze(-1)
-                    qdc = torch.linalg.solve(A, rhs2.unsqueeze(-1)).squeeze(-1)
-                if self.cfg.max_vel is not None:
-                    nrm = qdc.norm(dim=-1, keepdim=True)
-                    hit = (nrm > self.cfg.max_vel)
-                    self.clamp_stats["vel_clamp_hits"] += float(hit.sum())
-                    qdc = qdc * torch.clamp(self.cfg.max_vel / (nrm + 1e-12), max=1.0)
-                qc = self.art.integrate(qc, qdc, dt)
+                qc, qdc, qdd, aux = self._substep(qc, qdc, tau_ext,
+                                                  self.cfg.dt)
             if not train_mode:
                 qc, qdc, qdd = qc.detach(), qdc.detach(), qdd.detach()
         return StepResult(q=qc, qd=qdc, qdd=qdd,

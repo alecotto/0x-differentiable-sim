@@ -73,9 +73,7 @@ def seed_mid(sim):
 def advance(sim, q, w, n):
     dt = sim.cfg.dt
     for _ in range(n):
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
     return q, w
 
 
@@ -102,9 +100,7 @@ def telemetry(sim, q, w, ms=200.):
         th_a = float(np.arctan2(d[:, 0], d[:, 2]))
         om_a = float(w[:, sim.art._vs[1]])
         trace.append((i * dt * 1e3, th_a, om_a))
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
     arr = np.array(trace)
     om0 = float(arr[:, 2].max())
     below = arr[arr[:, 2] < 0.1 * max(om0, 1e-9)]
@@ -146,9 +142,7 @@ def march_to_strike(sim, q, w, max_steps=60000, vn_min=0.0,
                 if vn_peak >= vn_min:
                     return i, vn_peak
             prev = cl
-            qdd = sim.forward_dynamics(q, w)
-            w = w + dt * qdd
-            q = sim.art.integrate(q, w, dt)
+            q, w = sim.step_substep(q, w)
     return None, None
 
 

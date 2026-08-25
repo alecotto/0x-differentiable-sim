@@ -75,9 +75,7 @@ def seed_state(sim, th_a=-0.19, th_b=0.16):
 def advance(sim, q, w, n):
     dt = sim.cfg.dt
     for _ in range(n):
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
     return q, w
 
 

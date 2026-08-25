@@ -70,9 +70,7 @@ def scan(gamma, E=64, T=3.0, dt=1e-4, k=2.5e4, b=400., mu=0.9, seed=0,
     fell = np.zeros(E, dtype=bool)
     n_steps = int(T / dt)
     for i in range(n_steps):
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
         R_w, p_w = sim.art.kinematics(q)
         cen, _ = sim.art.geoms_world(q, sim.geoms, R_w, p_w)
         hip = p_w[:, 0]

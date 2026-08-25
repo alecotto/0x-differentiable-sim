@@ -98,9 +98,7 @@ def one_stride_twin(sim, q0, w0, max_steps=12000):
     prev = {"a": cl_a, "b": cl_b}
     TOL_ABOVE = 2e-4                   # must rise above this before arming
     for step in range(max_steps):
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
         st = leg_state(sim, q, w)
         for leg in ("a", "b"):
             cl = float(st[f"clear_{leg}"][0])

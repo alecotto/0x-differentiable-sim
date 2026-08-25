@@ -74,9 +74,7 @@ def run_case(gamma, k, b, scales=(0.95, 1.0, 1.05, 1.15, 1.3),
     armed = np.zeros((E, 2), dtype=bool)
     fell = np.zeros(E, dtype=bool)
     for i in range(n_steps):
-        qdd = sim.forward_dynamics(q, w)
-        w = w + dt * qdd
-        q = sim.art.integrate(q, w, dt)
+        q, w = sim.step_substep(q, w)
         st = leg_state(sim, q, w)
         cl = torch.stack([st["clear_a"], st["clear_b"]], dim=1).cpu().numpy()
         th = torch.stack([st["th_a"], st["th_b"]], dim=1).cpu().numpy()
