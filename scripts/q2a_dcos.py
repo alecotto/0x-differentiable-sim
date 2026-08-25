@@ -154,16 +154,24 @@ def unpack(sim, x):
     return q, w
 
 
-def objective(sim, x, n_steps):
+def objective(sim, x, n_steps, kind="px"):
+    """kind='px': forward hip position. kind='quatz': quaternion z
+    component (~ base pitch/2 in planar motion) -- the ORIGINAL
+    (accidental) objective of the first campaign, kept as a deliberate
+    observable for the objective-independence test."""
     q, w = unpack(sim, x)
     q, w = advance(sim, q, w, n_steps)
-    return q[0, sim.art.m.q_free_start + 4]      # hip_x readout (px; fs+4..6 = px,py,pz)
+    if kind == "px":
+        return q[0, sim.art.m.q_free_start + 4]
+    elif kind == "quatz":
+        return q[0, sim.art.m.q_free_start + 3]
+    raise ValueError(kind)
 
 
-def grad_window(sim, x, n_steps, eps=2e-5, R=4, seed=0):
+def grad_window(sim, x, n_steps, eps=2e-5, R=4, seed=0, kind="px"):
     """Analytic gradient + smoothed central-FD reference + split halves."""
     xa = x.clone().requires_grad_(True)
-    obj = objective(sim, xa, n_steps)
+    obj = objective(sim, xa, n_steps, kind=kind)
     g_ana = torch.autograd.grad(obj, xa)[0].detach().numpy().reshape(-1)
 
     rng = np.random.default_rng(seed)
@@ -195,7 +203,7 @@ def cos(u, v):
 
 def measure_config(gamma=0.009, k=2.5e4, b=400., mu=0.9, dt=1e-4,
                    beta=0.02, implicit=False, W=200, eps=2e-5, R=4,
-                   seed_state_fn=seed_state):
+                   seed_state_fn=seed_state, kinds=("px", "quatz")):
     sim = build(gamma, k, b, mu, dt, beta=beta, implicit=implicit)
     q0, w0 = seed_state(sim)
     i_ev, v_n = find_event(sim, q0, w0)
@@ -211,14 +219,18 @@ def measure_config(gamma=0.009, k=2.5e4, b=400., mu=0.9, dt=1e-4,
     for name, i0 in starts.items():
         q, w = advance(sim, q0.clone(), w0.clone(), i0)
         x = pack(sim, q, w).requires_grad_(True)
-        g_ana, g_fd, floor = grad_window(sim, x, W, eps=eps, R=R,
-                                         seed=42)
-        out[f"cos_{name}"] = cos(g_ana, g_fd)
-        out[f"gnorm_ana_{name}"] = float(np.linalg.norm(g_ana))
-        out[f"gnorm_fd_{name}"] = float(np.linalg.norm(g_fd))
-        out[f"fd_floor_{name}"] = floor
-    if "cos_A" in out and "cos_B" in out:
-        out["delta_cos"] = out["cos_A"] - out["cos_B"]
+        for kind in kinds:
+            g_ana, g_fd, floor = grad_window(sim, x, W, eps=eps, R=R,
+                                             seed=42, kind=kind)
+            tag = "" if kind == "px" else "_qz"
+            out[f"cos_{name}{tag}"] = cos(g_ana, g_fd)
+            out[f"gnorm_ana_{name}{tag}"] = float(np.linalg.norm(g_ana))
+            out[f"gnorm_fd_{name}{tag}"] = float(np.linalg.norm(g_fd))
+            out[f"fd_floor_{name}{tag}"] = floor
+    if "cos_A_px" in out:
+        out["delta_cos"] = out["cos_A_px"] - out["cos_B_px"]
+    if "cos_A_qz" in out:
+        out["delta_cos_qz"] = out["cos_A_qz"] - out["cos_B_qz"]
         out["floor_mean"] = 0.5 * (out.get("fd_floor_A", float("nan"))
                                    + out.get("fd_floor_B", float("nan")))
     out["pen_max_B"] = max_penetration(sim, q0, w0,

@@ -88,6 +88,34 @@ Internally valid as gradient-agreement measurements (same scalar both
 sides) but mislabeled + not regenerated after fix. Regeneration doubles
 as objective-independence test.
 
+## SESSION 7 CONTINUED — the gradient-explosion mystery RESOLVED (in progress)
+
+Determinism verified (3 identical trials, torch single-thread):
+imp=0 @ (k=2.5e5, dt=1e-4): ||g_ana_qz|| = 3.7058e08, cosB=+0.0001,
+i_ev=936 — reproducible EXACTLY.
+
+Causal chain assembled (each layer masked the next):
+1. b-plumbing bug => implicit-flag runs had ZERO normal damping.
+2. Zero damping + stiff contact => violent rebound => base/joint
+   velocities exceed cfg.max_vel=30 => the SAFETY CLAMP fires.
+3. The clamp is nonsmooth and TRUNCATES gradient flow => BPTT returns
+   corrupted directions (cos~0) with meaningless magnitudes (~1e8).
+4. WITH working damping (post-fix): bounce tamed below clamp threshold;
+   ||g|| drops to ~40 (still large, jump-knee related per earlier
+   finding) and gradient quality needs re-measurement with controlled
+   clamp state (floor comparisons absent in quick probes).
+
+CONFOUND IDENTIFIED: the step_substep refactor INTRODUCED max_vel
+clamping into paths whose original campaign loops lacked it — explains
+why formerly-exploding configs measure clean today and vice versa.
+Next session MUST re-run the key tables with clamp state as an explicit
+controlled variable (max_vel=None vs 30), plus report clamp-hit counts.
+
+Interpretation shift: the field's "gradients explode at contact" may
+often be "gradients explode at CONTACT+SAFETY-CLAMP interactions" —
+an engine artifact class, not physics. Our own headline claims about
+gradient pathology are suspended pending the controlled rerun.
+
 ## SESSION 6 FINAL (frontier sweep + knob insensitivity)
 q3_frontier_sweep COMPLETE (benchmarks/q3_frontier_sweep.json):
 - b in {400,800,1600} and eps_ramp in {50,100,200}um at k=1e6, dt=2e-5:
