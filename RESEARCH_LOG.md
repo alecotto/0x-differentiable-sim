@@ -57,6 +57,26 @@ at tol=1e-5 gamma_8 onset drifts to >=0.017779 (vs 0.017748 at 1e-6),
 classification disagreement visible across the bracket. Point-count
 delta values remain quarantined; multiplier-crossing criterion next.
 
+## SESSION 6 FINAL (frontier sweep + knob insensitivity)
+q3_frontier_sweep COMPLETE (benchmarks/q3_frontier_sweep.json):
+- b in {400,800,1600} and eps_ramp in {50,100,200}um at k=1e6, dt=2e-5:
+  post-strike telemetry IDENTICAL across all variants (peak rate 0.250,
+  retained 0.304, backswing rise 0.006mm); Delta-cos = 0.000 everywhere.
+- => backswing deficit lives in CONSTRAINT COUPLING through the hip
+  during front-foot compression; NOT tunable by any contact parameter.
+  Recovery paths: minimum actuation or arc feet.
+- => gradients clean across the ENTIRE knob space at dt=2e-5 because
+  passive-walker touchdowns are SLOW (vn=0.01-0.02 m/s measured):
+  Pi_ramp ~ 500 regardless of ramp width. The earlier explosions needed
+  coarse dt (Pi_ramp<3). "Soft landers" resolve their own knee.
+- tol_drift: point-count onsets confirmed tolerance-dependent
+  (tol=1e-5 puts gamma_8 onset >= 0.017779 vs 0.017748 at 1e-6).
+  gamma_16 bisection at tol=1e-6 was mid-flight at session end
+  (/tmp/opencode/tol_drift.log; json saves on completion).
+NEXT SESSION: (1) minimum-actuation threshold (the lever is NOT contact);
+(2) multiplier-crossing onset criterion to replace point counting;
+(3) arc feet only if actuation threshold is large.
+
 ## SESSION 5 FINAL STATE (wrap-up)
 
 ### Headline: HIGH-K WALKING SCAN + MECHANISM LOCALIZED

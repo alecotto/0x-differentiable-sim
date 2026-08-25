@@ -241,6 +241,20 @@ oracle-derived seed does. Retained post-strike swing rate is ~0.47 of
 the rigid prediction (mechanism quantified in
 benchmarks/twin_strike_mechanism.json).
 
+**Knob insensitivity at this operating point** (`benchmarks/q3_frontier_sweep.json`):
+sweeping b ∈ {400, 800, 1600} and ε_ramp ∈ {50, 100, 200} µm at k=1e6
+leaves the post-strike telemetry *unchanged* (peak rate 0.250 rad/s,
+retained 0.30, backswing rise 0.006 mm in every variant) while Δcos
+stays 0.000 everywhere. Two consequences: (a) the backswing deficit
+lives in compliant constraint coupling through the hip during front-foot
+compression — not contact unloading — so no contact parameter recovers
+it (actuation or morphology must); (b) gradient cleanliness is robust
+across the whole knob space at dt=2e-5, consistent with slow touchdowns
+(v_n ≈ 0.01–0.02 m/s) giving Π_ramp ≈ 500 regardless of ramp width.
+Passive-walker-class machines land softly by design; their gradient
+failure mode is the static knee position at high k * coarse dt, not
+dynamic undersampling.
+
 ### Compliant twin (DiffSim): current empirical status
 
 **Headline (bounded result).** Compliant point-foot passive walking
