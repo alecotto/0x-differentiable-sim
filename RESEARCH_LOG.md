@@ -57,6 +57,37 @@ at tol=1e-5 gamma_8 onset drifts to >=0.017779 (vs 0.017748 at 1e-6),
 classification disagreement visible across the bracket. Point-count
 delta values remain quarantined; multiplier-crossing criterion next.
 
+## SESSION 7 (feedback round 3: the b-plumbing bug)
+
+### CRITICAL BUG (second-order catch, via knob-sanity rule)
+Feedback flagged bit-identical b-rows. Diagnosis: TWO stacked bugs —
+(1) implicit damping application lived ONLY inside DiffSim.step(); every
+script rollout loop called forward_dynamics() directly => with
+implicit_damping=True the damping FORCE was excluded but the implicit
+correction never applied => ALL implicit-flag runs ran with ZERO normal
+damping, identically for any b.
+(2) The frozen coefficient carried an INVERTED sign (slope negative =>
+A = M - dt R^T B R = anti-damping). Never exercised because of (1).
+FIX: positive b_eff; new public DiffSim.step_substep(); all script
+loops routed through it (11 sites). Knob-sanity now PASSES:
+b=0/400/1e5 differ monotonically (0 -> 1.7e-4 -> 1.3e-2 m fingerprint).
+
+### INVALIDATED by this bug (must regenerate before quoting):
+- k=1e6 "one stride + 0.53m" result (was undamped contact)
+- q3f frontier rows (all implicit=True)
+- twin_strike_mechanism numbers
+- the "constraint-coupling" conclusion (premise was an artifact)
+STILL VALID: everything with implicit flag OFF (explicit damping applied
+through forces in forward_dynamics correctly): pre-session-5 scans,
+Delta-cos rows marked implicit=False, tol/feigenbaum work (oracle numpy),
+walker Lyapunov (numpy oracle).
+
+### ALSO: fs+3 quaternion objective bug invalidated Delta-cos OBJECTIVE
+label: campaign differentiated quat-z drift (base pitch), not hip_x.
+Internally valid as gradient-agreement measurements (same scalar both
+sides) but mislabeled + not regenerated after fix. Regeneration doubles
+as objective-independence test.
+
 ## SESSION 6 FINAL (frontier sweep + knob insensitivity)
 q3_frontier_sweep COMPLETE (benchmarks/q3_frontier_sweep.json):
 - b in {400,800,1600} and eps_ramp in {50,100,200}um at k=1e6, dt=2e-5:
