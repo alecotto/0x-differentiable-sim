@@ -88,6 +88,28 @@ Internally valid as gradient-agreement measurements (same scalar both
 sides) but mislabeled + not regenerated after fix. Regeneration doubles
 as objective-independence test.
 
+## SESSION 7 CLOSING ENTRY — instrument audit verdict
+Per-coordinate FD sanity probe (damped straddle window, k=2.5e5):
+g_BPTT vs g_FD agree cos=0.99999999, max rel diff 0.3%.
+=> Engine, BPTT, and event handling are SANE.
+=> The near-zero cosines in q3f/unified sweeps come from their JITTERED
+   MULTI-REPLICATE FD REFERENCE (measure_config path) — bug in that
+   reference implementation, location unknown (jitter application /
+   replicate aggregation / window-state reuse suspected).
+STATUS OF CLAIMS:
+* VALID: damping tames stiff-contact gradient norms 10^7x
+  (40 vs 3.7e8, deterministic, clamp-independent);
+  per-coordinate analytic==FD everywhere tested;
+  epsconv cos->0.976 (different, per-coordinate path — consistent);
+  jump interpretation of ||g_fd||*eps plateau (per-coordinate path).
+* QUARANTINED: every Delta-cos / Pi_ramp-transition number produced by
+  the jittered-reference sweep (original campaign + dense + unified).
+  The Pi_ramp~2.5 "collapse" may be an artifact of the broken
+  reference. Regenerate with per-coordinate FD before quoting.
+NEXT SESSION ORDER: (1) find+fix jittered-reference bug; (2) regenerate
+unified table both objectives; (3) THEN reinterpret collapse/vn law;
+(4) min-actuation; (5) delta criterion rebuild.
+
 ## SESSION 7 CONTINUED — the gradient-explosion mystery RESOLVED (in progress)
 
 Determinism verified (3 identical trials, torch single-thread):
