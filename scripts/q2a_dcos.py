@@ -159,7 +159,7 @@ def unpack(sim, x):
 def objective(sim, x, n_steps):
     q, w = unpack(sim, x)
     q, w = advance(sim, q, w, n_steps)
-    return q[0, sim.art.m.q_free_start + 3]      # hip_x readout
+    return q[0, sim.art.m.q_free_start + 4]      # hip_x readout (px; fs+4..6 = px,py,pz)
 
 
 def grad_window(sim, x, n_steps, eps=2e-5, R=4, seed=0):

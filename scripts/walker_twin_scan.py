@@ -62,7 +62,7 @@ def scan(gamma, E=64, T=3.0, dt=1e-4, k=2.5e4, b=400., mu=0.9, seed=0,
     w[:, sim.art._vs[1]] = torch.from_numpy(oma)
     w[:, sim.art._vs[2]] = torch.from_numpy(omb)
 
-    x0 = q[:, fs + 3].clone()
+    x0 = q[:, fs + 4].clone()
     strikes = np.zeros(E)
     last = np.full(E, -1)
     armed = np.zeros((E, 2), dtype=bool)
@@ -104,7 +104,7 @@ def scan(gamma, E=64, T=3.0, dt=1e-4, k=2.5e4, b=400., mu=0.9, seed=0,
                 prev[j, lg] = cl[j, lg]
         if bool(fell.all()):
             break
-    adv = (q[:, fs + 3] - x0).cpu().numpy()
+    adv = (q[:, fs + 4] - x0).cpu().numpy()
     labels = []
     for j in range(E):
         if fell[j]:

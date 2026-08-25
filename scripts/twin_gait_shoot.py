@@ -140,8 +140,8 @@ def main():
             tb = qc[:, sim.art._qs[2]][0]
             loss = loss + 2.0 * ((torch.relu(ta.abs() - 0.5) ** 2)
                                  + torch.relu(tb.abs() - 0.5) ** 2)
-        x0_ = q0[:, sim.art.m.q_free_start + 3][0]
-        xN_ = qN[:, sim.art.m.q_free_start + 3][0]
+        x0_ = q0[:, sim.art.m.q_free_start + 4][0]
+        xN_ = qN[:, sim.art.m.q_free_start + 4][0]
         advance = 2.0 * WALKER_P["l"] * math.sin(max(abs(float(th_a)),
                                                      abs(float(th_b))))
         loss = loss + 4.0 * torch.relu(advance - (xN_ - x0_)) ** 2

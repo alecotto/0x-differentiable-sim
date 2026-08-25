@@ -216,12 +216,31 @@ multi-DOF hybrid locomotion.
 
 ### Compliant twin (DiffSim): current empirical status
 
-**Coverage disclosure (read before quoting).** An earlier degrees/radians
-bug (`slope_gravity` took degrees, callers passed radians) silently ran
-every twin simulation before commit `1983c71` at effective slope
-γ_eff ≈ 9×10⁻⁵ rad — flat ground. All scans from before that commit are
-**invalidated as slope measurements** and were discarded. What follows is
-the post-fix record only.
+**Headline (bounded result).** Compliant point-foot passive walking
+requires the static penetration δ_pen = mg/(n·k) to drop below the
+swing-clearance budget — i.e. k ≳ mg/(n·h_clear) ≈ 1e5–1e6 N/m for this
+machine. At k = 4e5–1e6 N/m (implicit damping, μ=0.9, true slope), the
+twin achieves liftoff and completes **one stride** from an oracle-derived
+mid-stance seed: +0.53 m travel, 19–20 mm swing clearance, dt-converged
+to 4 decimals across dt ∈ {5e-5, 2e-5} (`scripts/twin_strike_mechanism.py`,
+`benchmarks/twin_strike_mechanism.json`). The stride does not repeat:
+after touchdown the machine stands in double support ~0.8 s, then slides
+into a fall. **No self-sustaining orbit found at any stiffness tested**
+(k ≤ 4e5: zero net advance at every dt; random ICs never enter the
+walking basin even at k=1e6 — only the oracle-derived seed does).
+
+Mechanism, quantified: across the compliant strike window the new swing
+leg retains only ~50% of the rigid-orbit backswing rate (+0.386 vs
++0.71 rad/s) because the old foot scrubs angular momentum while it
+unloads; what survives decays to zero within 135 ms and the backswing
+stalls at ~1 mm tip rise vs the rigid orbit's 5 mm.
+
+**Coverage disclosure.** An earlier degrees/radians bug (`slope_gravity`
+took degrees, callers passed radians) silently ran every twin simulation
+before commit `1983c71` at effective slope γ_eff ≈ 9×10⁻⁵ rad — flat
+ground. All scans from before that commit are **invalidated as slope
+measurements** and were discarded. What follows is the post-fix record
+only.
 
 **Post-fix scanned to date** (point feet r=1 mm, foot mass βM=0.02,
 semi-implicit Euler):
