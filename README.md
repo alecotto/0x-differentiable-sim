@@ -214,6 +214,33 @@ Tangents propagate through heelstrike events with no saltation
 correction, extending the earlier bouncing-ball finding to
 multi-DOF hybrid locomotion.
 
+### THE Q3 FRONTIER: walking and clean gradients coexist
+
+Measured operating point (single most important configuration in the
+project):
+
+    k = 1e6 N/m, dt = 2e-5 s, mu = 0.9, implicit damping,
+    foot mass 0.02*M, slope 0.009 rad, oracle-derived seed:
+
+    * walking: one full stride, +0.53 m travel, 19.5 mm swing clearance,
+      dt-converged to 4 decimals vs dt = 5e-5
+    * gradients: Delta-cos = -0.000 across the heelstrike event,
+      cos_B = 1.000, split-sample FD floor 1.0
+      (Pi_ramp = eps_ramp/(v_n*dt) = 503 with measured v_n = 0.0099 m/s)
+
+Both boundaries are measured, not assumed:
+    * walking onset: k between 4e5 and 1e6 (4e5 also strides; <= 2.5e4
+      drifts BACKWARD with sub-millimetre lifts)
+    * gradient degradation onset: Pi_ramp <~ 3 (dense dt grid), reached
+      in this machine only at dt >= 8e-5 at k = 2.5e5
+
+Caveats kept honest: the stride does not self-repeat (double-support
+stand then slide-fall); no closed orbit found at any stiffness; the
+walking basin is narrow — random ICs never enter it, only the
+oracle-derived seed does. Retained post-strike swing rate is ~0.47 of
+the rigid prediction (mechanism quantified in
+benchmarks/twin_strike_mechanism.json).
+
 ### Compliant twin (DiffSim): current empirical status
 
 **Headline (bounded result).** Compliant point-foot passive walking
