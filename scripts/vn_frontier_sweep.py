@@ -152,8 +152,8 @@ def measure(vn_target, gamma=0.009, k=2.5e5, b=400., mu=0.9, dt=1e-4,
     l, r = WALKER_P["l"], WALKER_P["r_foot"]
     # pose: modest split, both feet CLEAR of ground
     th_a, th_b = 0.12, -0.10          # absolute angles (rad)
-    h_clear = min(0.05, max(0.004,
-            0.5 * vn_target ** 2 / 9.81 + 0.001))
+    h_clear = min(0.05, max(2e-4,
+            0.5 * vn_target ** 2 / 9.81 + 2e-4))
     q = torch.zeros(1, sim.art.m.q_dim, dtype=DT_TYPE)
     w = torch.zeros(1, sim.art.m.v_dim, dtype=DT_TYPE)
     q[0, fs] = 1.0
@@ -198,7 +198,7 @@ def measure(vn_target, gamma=0.009, k=2.5e5, b=400., mu=0.9, dt=1e-4,
 if __name__ == "__main__":
     rows = []
     print("=== v_n frontier sweep ===", flush=True)
-    for vt in (0.02, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6):
+    for vt in (0.06, 0.12, 0.25, 0.5, 1.0, 2.0, 3.2):
         try:
             r = measure(vt)
             rows.append(r)
