@@ -206,8 +206,9 @@ def main():
     tau = float(below[0, 0]) if len(below) else None
     bs_idx = int(np.argmax(arr[:, 1]))
     stall_amp = float(arr[bs_idx, 1])
-    tip_rise = WALKER_P["l"] * (math.cos(float(s_fp[0]))
-                                - math.cos(stall_amp)) * 1e3
+    th_swing_start = float(arr[0, 1])   # leg-a angle AT strike
+    tip_rise = WALKER_P["l"] * (math.cos(abs(th_swing_start))
+                                - math.cos(abs(stall_amp))) * 1e3
     results["post_strike_telemetry"] = {
         "v_n_at_event": vn,
         "twin_peak_rate": om0,
